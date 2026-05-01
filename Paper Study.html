@@ -1148,93 +1148,191 @@
       pointer-events: auto;
     }
   }
+
+  /* ============================================================
+     LOADING OVERLAY
+     ============================================================ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    transition: opacity 0.25s ease;
+  }
+  .loading-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--line-strong);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ============================================================
+     SAVE INDICATOR (bottom-right toast)
+     ============================================================ */
+  .save-indicator {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+  .save-indicator.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .save-indicator.is-error {
+    border-color: oklch(0.65 0.13 25);
+    color: oklch(0.45 0.18 25);
+  }
+  .save-indicator .si-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .save-indicator.is-saved .si-dot,
+  .save-indicator.is-error .si-dot { animation: none; }
+  .save-indicator.is-error .si-dot { background: oklch(0.55 0.18 25); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ============================================================
+     TOKEN MODAL
+     ============================================================ */
+  .token-modal {
+    position: fixed;
+    z-index: 110;
+    top: 50%;
+    left: 50%;
+    width: min(480px, calc(100vw - 32px));
+    transform: translate(-50%, -48%) scale(0.98);
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    box-shadow: 0 24px 80px -20px rgba(20,18,14,0.35),
+                0 0 0 1px rgba(20,18,14,0.04);
+    padding: 32px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.32,0.72,0.24,1);
+  }
+  .token-modal.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .token-modal__logo {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    margin: 0 0 20px;
+  }
+  .token-modal h2 {
+    font-size: 17px;
+    font-weight: 500;
+    margin: 0 0 10px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .token-modal p {
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.65;
+    margin: 0 0 22px;
+  }
+  .token-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .token-input-row input {
+    flex: 1;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .token-input-row input:focus {
+    border-color: var(--ink-3);
+    background: var(--bg-elev);
+  }
+  .token-modal .hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .token-modal .hint a {
+    color: var(--accent-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .token-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-4);
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.12s ease;
+  }
+  .token-btn:hover { color: var(--ink); border-color: var(--ink-3); }
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     PAPER DATA — add a new entry by copying one block.
-     ============================================================
-     Each block looks like this:
-
-     {
-       no: 4,
-       title: "English title here",
-       summary: "한국어 한줄 요약",
-       authors: ["LastnameA", "LastnameB", "LastnameC"],
-       venue: "ICLR",
-       year: 2025,
-       tags: ["llm", "alignment"],
-       status: "reading",        // "read" | "reading" | "hold"
-       date_read: "2025.04.12",  // empty string if not yet read
-       progress: 3,              // 1–5
-       notes: "free-form notes",
-       deep_notes: {
-         problem:  "...", fail: "...", insight: "...",
-         method:   "...", results: "...", limits: "...", takeaway: "...",
-       },
-       url: "https://arxiv.org/abs/...",
-     },
-     ============================================================ -->
 <script>
-const PAPERS = [
-
-  // ─────────────────────────────────────────────────────────────
-  {
-    no: 1,
-    title: "Attention Is All You Need",
-    summary: "순환·합성곱 없이 셀프 어텐션만으로 시퀀스를 처리하는 트랜스포머 구조 제안.",
-    authors: ["Vaswani", "Shazeer", "Parmar"],
-    venue: "NeurIPS",
-    year: 2017,
-    tags: ["transformer", "nlp", "architecture"],
-    status: "read",
-    date_read: "2025.03.04",
-    progress: 5,
-    notes: "스케일드 닷프로덕트 어텐션과 멀티헤드 구성을 다시 정리. 포지셔널 인코딩 부분은 학습형으로 바꾸는 후속 연구를 추가로 볼 것.",
-    deep_notes: {
-      problem:  "Sequence transduction을 길이 N의 토큰열 → 길이 M의 토큰열 매핑으로 정의하고, 임의 위치 간 의존성을 O(1) path length로 모델링하는 것을 목표로 함.",
-      fail:     "RNN은 순차 계산으로 병렬화가 막히고 long-range dependency를 잃음. CNN은 거리 비례 path length로 정보 전달이 비효율.",
-      insight:  "재귀 없이 self-attention만으로 시퀀스를 표현하면 path length는 O(1), 병렬성은 자유롭다.",
-      method:   "인코더/디코더 6스택 · Multi-Head Self-Attn → FFN. 위치는 sinusoidal encoding으로 주입. residual + layer norm.",
-      results:  "WMT En-De 28.4 BLEU, En-Fr 41.8 BLEU. 학습 시간은 기존 SOTA 대비 일부분.",
-      limits:   "긴 시퀀스에서 O(N²) 메모리 비용. 위치 표현이 명시적 inductive bias 없음.",
-      takeaway: "Attention 만으로 충분하다는 명제를 증명한 시점부터, 시퀀스 모델 설계의 기본 단위가 RNN/CNN에서 self-attention으로 이동.",
-    },
-    url: "https://arxiv.org/abs/1706.03762",
-  },
-  // ─────────────────────────────────────────────────────────────
-  {
-    no: 2,
-    title: "Denoising Diffusion Probabilistic Models",
-    summary: "노이즈 추가/제거 마르코프 체인으로 고품질 이미지 생성을 달성한 확산 모델의 기초 논문.",
-    authors: ["Ho", "Jain", "Abbeel"],
-    venue: "NeurIPS",
-    year: 2020,
-    tags: ["diffusion", "generative", "vision"],
-    status: "reading",
-    date_read: "",
-    progress: 3,
-    notes: "ELBO 유도 부분을 다시 따라가는 중. 분산 스케줄(linear vs cosine) 비교 실험을 별도 메모로 정리할 것.",
-    url: "https://arxiv.org/abs/2006.11239",
-  },
-  // ─────────────────────────────────────────────────────────────
-  {
-    no: 3,
-    title: "Language Models are Few-Shot Learners",
-    summary: "175B 파라미터 모델이 in-context learning만으로 다양한 태스크에서 강한 성능을 보임을 보고.",
-    authors: ["Brown", "Mann", "Ryder"],
-    venue: "NeurIPS",
-    year: 2020,
-    tags: ["llm", "nlp", "in-context-learning"],
-    status: "hold",
-    date_read: "",
-    progress: 2,
-    notes: "벤치마크 섹션이 길어 잠시 보류. 추후 emergent abilities 논의와 함께 다시 읽기.",
-    url: "https://arxiv.org/abs/2005.14165",
-  },
-
-];
+/* Paper data is loaded from GitHub (papers.json). Populated by init(). */
+let PAPERS = [];
 </script>
 
 <!-- ============================================================
@@ -1246,8 +1344,14 @@ const PAPERS = [
   <section class="stats" aria-label="reading stats">
     <div class="stats__brand">
       <h1 class="brand__title"><strong>Paper Study</strong> &nbsp;·&nbsp; reading log</h1>
-      <div style="display:flex; align-items:center; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
         <span class="brand__meta" id="lastUpdated">—</span>
+        <button class="token-btn" id="tokenResetBtn" title="GitHub 토큰 재설정">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-1px;margin-right:4px;">
+            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
+          </svg>
+          Token
+        </button>
         <button class="add-btn" id="addPaperBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
             <path d="M12 5v14M5 12h14"/>
@@ -1322,6 +1426,34 @@ const PAPERS = [
     </div>
   </div>
 
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <span class="loading-overlay__label" id="loadingLabel">로딩 중…</span>
+</div>
+
+<!-- SAVE INDICATOR -->
+<div class="save-indicator" id="saveIndicator">
+  <span class="si-dot"></span>
+  <span id="siText">저장 중…</span>
+</div>
+
+<!-- TOKEN MODAL -->
+<div class="modal-backdrop" id="tokenModalBackdrop"></div>
+<div class="token-modal" id="tokenModal" role="dialog" aria-labelledby="tokenModalTitle">
+  <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; GitHub Sync</p>
+  <h2 id="tokenModalTitle">GitHub 토큰을 입력해 주세요</h2>
+  <p>논문 데이터는 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">duck-bin/cc</code> 레포의 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">papers.json</code>에 저장됩니다. 파일 읽기·쓰기 권한이 있는 Personal Access Token을 입력하세요. 토큰은 브라우저 localStorage에만 저장되며, 외부로 전송되지 않습니다.</p>
+  <div class="token-input-row">
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
+    <button class="btn btn--primary" id="tokenSaveBtn" style="white-space:nowrap;">연결</button>
+  </div>
+  <p class="hint">
+    토큰 생성: <a href="https://github.com/settings/tokens/new?scopes=repo&description=Paper+Study" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Personal access tokens</a><br>
+    필요 권한: <strong>repo</strong> (또는 <strong>contents:write</strong>)
+  </p>
 </div>
 
 <!-- ADD/EDIT MODAL -->
@@ -1477,75 +1609,171 @@ const PAPERS = [
 
 <script>
   /* ============================================================
+     GITHUB API CONFIG
+     ============================================================ */
+  const GITHUB_OWNER  = "duck-bin";
+  const GITHUB_REPO   = "cc";
+  const GITHUB_BRANCH = "main";
+  const GITHUB_FILE   = "papers.json";
+  const TOKEN_LS_KEY  = "paper-study-gh-token";
+
+  let ghToken   = localStorage.getItem(TOKEN_LS_KEY) || "";
+  let ghFileSha = null;
+
+  function setToken(t)  { ghToken = t; localStorage.setItem(TOKEN_LS_KEY, t); }
+  function clearToken() { ghToken = ""; localStorage.removeItem(TOKEN_LS_KEY); }
+
+  /* ============================================================
+     LOADING / SAVE INDICATOR
+     ============================================================ */
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  const saveIndicator  = document.getElementById("saveIndicator");
+  const siText         = document.getElementById("siText");
+  let siTimer = null;
+
+  function showLoading(msg = "로딩 중…") {
+    document.getElementById("loadingLabel").textContent = msg;
+    loadingOverlay.classList.remove("is-hidden");
+  }
+  function hideLoading() {
+    loadingOverlay.classList.add("is-hidden");
+  }
+  function showSave(msg, state = "saving") {
+    siText.textContent = msg;
+    saveIndicator.classList.remove("is-error", "is-saved");
+    if (state === "error") saveIndicator.classList.add("is-error");
+    if (state === "saved") saveIndicator.classList.add("is-saved");
+    saveIndicator.classList.add("is-visible");
+    clearTimeout(siTimer);
+    siTimer = setTimeout(() => saveIndicator.classList.remove("is-visible"),
+      state === "error" ? 6000 : 2000);
+  }
+
+  /* ============================================================
+     GITHUB API
+     ============================================================ */
+  function ghHeaders() {
+    return {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${ghToken}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+  }
+
+  async function loadPapersFromGitHub() {
+    showLoading("논문 데이터 로딩 중…");
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}`,
+        { headers: ghHeaders() }
+      );
+      if (res.status === 404) {
+        ghFileSha = null;
+        await writePapersJson([], "Initialize papers.json");
+        PAPERS.length = 0;
+        hideLoading();
+        renderAll();
+        return;
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      ghFileSha = data.sha;
+      const decoded = decodeBase64Unicode(data.content.replace(/\n/g, ""));
+      const list = JSON.parse(decoded);
+      PAPERS.length = 0;
+      list.forEach(p => PAPERS.push(p));
+      hideLoading();
+      renderAll();
+    } catch (err) {
+      hideLoading();
+      showSave("로드 실패: " + err.message, "error");
+      renderAll();
+    }
+  }
+
+  async function writePapersJson(papers, message = "Update papers.json") {
+    const body = {
+      message,
+      content: encodeBase64Unicode(JSON.stringify(papers, null, 2)),
+      branch: GITHUB_BRANCH,
+    };
+    if (ghFileSha) body.sha = ghFileSha;
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+      { method: "PUT", headers: { ...ghHeaders(), "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    ghFileSha = data.content.sha;
+  }
+
+  function encodeBase64Unicode(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+      (_, p1) => String.fromCharCode(parseInt(p1, 16))));
+  }
+  function decodeBase64Unicode(str) {
+    return decodeURIComponent(atob(str).split("").map(
+      c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
+  }
+
+  let saveDebounceTimer = null;
+  function scheduleSave(reason = "Update papers.json") {
+    clearTimeout(saveDebounceTimer);
+    showSave("저장 중…", "saving");
+    saveDebounceTimer = setTimeout(async () => {
+      try {
+        await writePapersJson([...PAPERS], reason);
+        showSave("저장됨", "saved");
+      } catch (err) {
+        showSave("저장 실패: " + err.message, "error");
+      }
+    }, 1200);
+  }
+
+  async function saveNow(reason = "Update papers.json") {
+    showSave("저장 중…", "saving");
+    try {
+      await writePapersJson([...PAPERS], reason);
+      showSave("저장됨", "saved");
+    } catch (err) {
+      showSave("저장 실패: " + err.message, "error");
+    }
+  }
+
+  /* ============================================================
      STATE
      ============================================================ */
-  const STORAGE_KEY = "paper-study-v1";
-  const USER_KEY    = "paper-study-user-v1";
-  const EDITS_KEY   = "paper-study-edits-v1";
-  const DELETED_KEY = "paper-study-deleted-v1";
-  const STATUS_ORDER = ["reading", "read", "hold"];
-  const STATUS_LABEL = { read: "읽음", reading: "읽는 중", hold: "보류" };
-  const STATUS_CLASS = { read: "s-read", reading: "s-reading", hold: "s-hold" };
+  const STATUS_ORDER   = ["reading", "read", "hold"];
+  const STATUS_LABEL   = { read: "읽음", reading: "읽는 중", hold: "보류" };
+  const STATUS_CLASS   = { read: "s-read", reading: "s-reading", hold: "s-hold" };
   const PROGRESS_LABEL = ["—", "훑어봄", "초독 진행", "재독 중", "정독 완료", "마스터"];
 
-  // Structured deep-note fields (the 7 academic memo sections)
   const DEEP_NOTE_FIELDS = [
-    { key: "problem",    label: "Problem Definition (Formalized)",
+    { key: "problem",  label: "Problem Definition (Formalized)",
       hint: "어떤 문제를 어떤 가정·기호로 정의했는가." },
-    { key: "fail",       label: "Why Existing Methods Fail",
+    { key: "fail",     label: "Why Existing Methods Fail",
       hint: "기존 접근의 한계, 실패 모드, 가정의 깨짐." },
-    { key: "insight",    label: "Core Insight (The Idea)",
+    { key: "insight",  label: "Core Insight (The Idea)",
       hint: "한 줄로 요약 가능한 핵심 통찰." },
-    { key: "method",     label: "Method Overview (Structure > Math)",
+    { key: "method",   label: "Method Overview (Structure > Math)",
       hint: "구조 / 모듈 / 데이터 흐름 중심으로." },
-    { key: "results",    label: "Key Results: SOTA & Robustness",
+    { key: "results",  label: "Key Results: SOTA & Robustness",
       hint: "결정적 표·그림 한두 개 요지." },
-    { key: "limits",     label: "Limitations",
+    { key: "limits",   label: "Limitations",
       hint: "저자가 인정한 점 + 내가 본 약점." },
-    { key: "takeaway",   label: "Takeaway: The Paradigm Shift",
+    { key: "takeaway", label: "Takeaway: The Paradigm Shift",
       hint: "이 논문이 분야에 무엇을 남기는가." },
   ];
 
-  // Hydrate from storage
-  function loadJSON(key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key)) || fallback; }
-    catch { return fallback; }
-  }
-  function saveOverrides() { localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides)); }
-  function saveUserPapers() { localStorage.setItem(USER_KEY, JSON.stringify(userPapers)); }
-  function saveEdits() { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)); }
-  function saveDeleted() { localStorage.setItem(DELETED_KEY, JSON.stringify([...deleted])); }
-
-  let overrides  = loadJSON(STORAGE_KEY, {});
-  let userPapers = loadJSON(USER_KEY, []);   // full paper objects added in-app
-  let edits      = loadJSON(EDITS_KEY, {});  // full-field edits to seed PAPERS by no
-  let deleted    = new Set(loadJSON(DELETED_KEY, []));
-
-  // Apply edits and remove deleted from seed PAPERS
-  for (let i = PAPERS.length - 1; i >= 0; i--) {
-    if (deleted.has(PAPERS[i].no)) { PAPERS.splice(i, 1); continue; }
-    const e = edits[PAPERS[i].no];
-    if (e) Object.assign(PAPERS[i], e);
-  }
-  // Append user-added papers
-  userPapers.forEach(p => PAPERS.push(p));
-
-  // Apply lightweight overrides (status / notes / progress / date_read)
-  PAPERS.forEach(p => {
-    const o = overrides[p.no];
-    if (o) {
-      if (o.status   !== undefined) p.status   = o.status;
-      if (o.notes    !== undefined) p.notes    = o.notes;
-      if (o.progress !== undefined) p.progress = o.progress;
-      if (o.date_read!== undefined) p.date_read= o.date_read;
-      if (o.deep_notes !== undefined) p.deep_notes = o.deep_notes;
-    }
-  });
-
   function nextNo() {
-    return PAPERS.reduce((m,p) => Math.max(m, p.no), 0) + 1;
+    return PAPERS.reduce((m, p) => Math.max(m, p.no), 0) + 1;
   }
-  function isUserPaper(no) { return userPapers.some(p => p.no === no); }
 
   let state = {
     search: "",
@@ -1715,15 +1943,12 @@ const PAPERS = [
     const p = PAPERS.find(x => x.no === no);
     if (!p) return;
     const idx = STATUS_ORDER.indexOf(p.status);
-    p.status = STATUS_ORDER[(idx+1) % STATUS_ORDER.length];
+    p.status = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
     if (p.status === "read" && !p.date_read) {
       const d = new Date();
       p.date_read = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
     }
-    overrides[no] = overrides[no] || {};
-    overrides[no].status = p.status;
-    if (p.date_read) overrides[no].date_read = p.date_read;
-    saveOverrides();
+    scheduleSave("Update paper status");
     renderAll();
     if (state.selectedNo === no) hydratePanel(p);
   }
@@ -1781,9 +2006,7 @@ const PAPERS = [
       d.onclick = () => {
         p.progress = (p.progress === step) ? step - 1 : step;
         if (p.progress < 0) p.progress = 0;
-        overrides[p.no] = overrides[p.no] || {};
-        overrides[p.no].progress = p.progress;
-        saveOverrides();
+        scheduleSave("Update reading progress");
         hydratePanel(p);
       };
     });
@@ -1794,14 +2017,11 @@ const PAPERS = [
     const notes = document.getElementById("panelNotes");
     notes.value = p.notes || "";
     document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
-    document.getElementById("notesSaved").textContent = "저장됨";
+    document.getElementById("notesSaved").textContent = "자동 저장";
     notes.oninput = () => {
       p.notes = notes.value;
-      overrides[p.no] = overrides[p.no] || {};
-      overrides[p.no].notes = notes.value;
-      saveOverrides();
       document.getElementById("notesCount").textContent = notes.value.length + " chars";
-      document.getElementById("notesSaved").textContent = "저장됨 · " + nowTime();
+      scheduleSave("Update notes");
     };
 
     // link
@@ -1849,14 +2069,7 @@ const PAPERS = [
       ta.addEventListener("input", () => {
         p.deep_notes[f.key] = ta.value;
         wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
-        overrides[p.no] = overrides[p.no] || {};
-        overrides[p.no].deep_notes = p.deep_notes;
-        saveOverrides();
-        if (isUserPaper(p.no)) {
-          const idx = userPapers.findIndex(x => x.no === p.no);
-          if (idx >= 0) { userPapers[idx].deep_notes = p.deep_notes; saveUserPapers(); }
-        }
-        document.getElementById("notesSaved").textContent = "Deep notes 저장됨 · " + nowTime();
+        scheduleSave("Update deep notes");
       });
       host.appendChild(wrap);
     });
@@ -1944,8 +2157,63 @@ const PAPERS = [
     renderTable();
   }
 
-  // Initial render
-  renderAll();
+  /* ============================================================
+     TOKEN MODAL
+     ============================================================ */
+  const tokenModal        = document.getElementById("tokenModal");
+  const tokenModalBackdrop = document.getElementById("tokenModalBackdrop");
+
+  function openTokenModal() {
+    tokenModal.classList.add("is-open");
+    tokenModalBackdrop.classList.add("is-open");
+    setTimeout(() => document.getElementById("tokenInput").focus(), 120);
+  }
+  function closeTokenModal() {
+    tokenModal.classList.remove("is-open");
+    tokenModalBackdrop.classList.remove("is-open");
+  }
+
+  document.getElementById("tokenSaveBtn").addEventListener("click", async () => {
+    const t = document.getElementById("tokenInput").value.trim();
+    if (!t) { document.getElementById("tokenInput").focus(); return; }
+    setToken(t);
+    document.getElementById("tokenInput").value = "";
+    closeTokenModal();
+    await loadPapersFromGitHub();
+  });
+
+  document.getElementById("tokenInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("tokenSaveBtn").click();
+  });
+
+  document.getElementById("tokenResetBtn").addEventListener("click", () => {
+    if (!confirm("GitHub 토큰을 초기화하고 재입력 화면으로 이동할까요?")) return;
+    clearToken();
+    PAPERS.length = 0;
+    renderAll();
+    openTokenModal();
+  });
+
+  // Esc closes token modal too
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && tokenModal.classList.contains("is-open")) {
+      e.stopPropagation();
+      closeTokenModal();
+    }
+  }, true);
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  async function init() {
+    if (!ghToken) {
+      openTokenModal();
+      hideLoading();
+    } else {
+      await loadPapersFromGitHub();
+    }
+  }
+  init();
 
   /* ============================================================
      MODAL — Add / Edit
@@ -2061,30 +2329,10 @@ const PAPERS = [
     }
 
     if (editingNo === null) {
-      // Create
-      const newPaper = { no: nextNo(), ...data };
-      PAPERS.push(newPaper);
-      userPapers.push(newPaper);
-      saveUserPapers();
+      PAPERS.push({ no: nextNo(), ...data });
     } else {
-      // Update
       const p = PAPERS.find(x => x.no === editingNo);
-      Object.assign(p, data);
-      if (isUserPaper(editingNo)) {
-        const idx = userPapers.findIndex(x => x.no === editingNo);
-        userPapers[idx] = { ...p };
-        saveUserPapers();
-      } else {
-        edits[editingNo] = { ...data };
-        saveEdits();
-      }
-      // Sync lightweight overrides too so they don't reapply stale values
-      overrides[editingNo] = {
-        status: data.status, notes: data.notes,
-        progress: data.progress, date_read: data.date_read,
-        deep_notes: data.deep_notes,
-      };
-      saveOverrides();
+      if (p) Object.assign(p, data);
     }
     closeModal();
     renderAll();
@@ -2092,6 +2340,7 @@ const PAPERS = [
       const p = PAPERS.find(x => x.no === state.selectedNo);
       if (p) hydratePanel(p);
     }
+    saveNow(editingNo === null ? "Add paper" : "Edit paper");
   });
 
   document.getElementById("modalDelete").addEventListener("click", () => {
@@ -2100,20 +2349,10 @@ const PAPERS = [
     const no = editingNo;
     const idx = PAPERS.findIndex(x => x.no === no);
     if (idx >= 0) PAPERS.splice(idx, 1);
-
-    if (isUserPaper(no)) {
-      userPapers = userPapers.filter(x => x.no !== no);
-      saveUserPapers();
-    } else {
-      deleted.add(no);
-      saveDeleted();
-    }
-    delete overrides[no]; saveOverrides();
-    delete edits[no];     saveEdits();
-
     if (state.selectedNo === no) closePanel();
     closeModal();
     renderAll();
+    saveNow("Delete paper");
   });
 
   document.getElementById("addPaperBtn").addEventListener("click", () => openModal(null));
