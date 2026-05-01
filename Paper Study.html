@@ -1444,11 +1444,12 @@ let PAPERS = [];
 <div class="modal-backdrop" id="tokenModalBackdrop"></div>
 <div class="token-modal" id="tokenModal" role="dialog" aria-labelledby="tokenModalTitle">
   <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; GitHub Sync</p>
-  <h2 id="tokenModalTitle">GitHub 토큰을 입력해 주세요</h2>
-  <p>논문 데이터는 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">duck-bin/cc</code> 레포의 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">papers.json</code>에 저장됩니다. 파일 읽기·쓰기 권한이 있는 Personal Access Token을 입력하세요. 토큰은 브라우저 localStorage에만 저장되며, 외부로 전송되지 않습니다.</p>
+  <h2 id="tokenModalTitle">쓰기 권한이 필요합니다</h2>
+  <p>논문 추가·수정·삭제는 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">duck-bin/cc</code> 레포에 직접 커밋합니다. <strong>repo</strong> 또는 <strong>contents:write</strong> 권한이 있는 Personal Access Token을 입력하세요. 토큰은 이 브라우저의 localStorage에만 저장되며 외부로 전송되지 않습니다. 읽기 전용으로만 사용한다면 닫아도 됩니다.</p>
   <div class="token-input-row">
     <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
     <button class="btn btn--primary" id="tokenSaveBtn" style="white-space:nowrap;">연결</button>
+    <button class="btn" id="tokenCancelBtn" style="white-space:nowrap;">취소</button>
   </div>
   <p class="hint">
     토큰 생성: <a href="https://github.com/settings/tokens/new?scopes=repo&description=Paper+Study" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Personal access tokens</a><br>
@@ -1660,29 +1661,22 @@ let PAPERS = [];
     };
   }
 
-  async function loadPapersFromGitHub() {
+  // Public read — no token required
+  async function loadPapersPublic() {
     showLoading("논문 데이터 로딩 중…");
     try {
       const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}`,
-        { headers: ghHeaders() }
+        `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${GITHUB_FILE}`,
+        { cache: "no-cache" }
       );
       if (res.status === 404) {
-        ghFileSha = null;
-        await writePapersJson([], "Initialize papers.json");
         PAPERS.length = 0;
         hideLoading();
         renderAll();
         return;
       }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      ghFileSha = data.sha;
-      const decoded = decodeBase64Unicode(data.content.replace(/\n/g, ""));
-      const list = JSON.parse(decoded);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const list = await res.json();
       PAPERS.length = 0;
       list.forEach(p => PAPERS.push(p));
       hideLoading();
@@ -1694,7 +1688,21 @@ let PAPERS = [];
     }
   }
 
+  // Authenticated write — fetches SHA lazily if needed
   async function writePapersJson(papers, message = "Update papers.json") {
+    if (ghFileSha === null) {
+      const shaRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}`,
+        { headers: ghHeaders() }
+      );
+      if (shaRes.ok) {
+        const shaData = await shaRes.json();
+        ghFileSha = shaData.sha;
+      } else if (shaRes.status !== 404) {
+        const err = await shaRes.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${shaRes.status}`);
+      }
+    }
     const body = {
       message,
       content: encodeBase64Unicode(JSON.stringify(papers, null, 2)),
@@ -1722,28 +1730,41 @@ let PAPERS = [];
       c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
   }
 
+  // Pending write action — set when a save is attempted without a token
+  let pendingWriteAction = null;
+
+  function ensureToken(action) {
+    if (ghToken) { action(); return; }
+    pendingWriteAction = action;
+    openTokenModal();
+  }
+
   let saveDebounceTimer = null;
   function scheduleSave(reason = "Update papers.json") {
     clearTimeout(saveDebounceTimer);
-    showSave("저장 중…", "saving");
-    saveDebounceTimer = setTimeout(async () => {
+    saveDebounceTimer = setTimeout(() => {
+      ensureToken(async () => {
+        showSave("저장 중…", "saving");
+        try {
+          await writePapersJson([...PAPERS], reason);
+          showSave("저장됨", "saved");
+        } catch (err) {
+          showSave("저장 실패: " + err.message, "error");
+        }
+      });
+    }, 1200);
+  }
+
+  function saveNow(reason = "Update papers.json") {
+    ensureToken(async () => {
+      showSave("저장 중…", "saving");
       try {
         await writePapersJson([...PAPERS], reason);
         showSave("저장됨", "saved");
       } catch (err) {
         showSave("저장 실패: " + err.message, "error");
       }
-    }, 1200);
-  }
-
-  async function saveNow(reason = "Update papers.json") {
-    showSave("저장 중…", "saving");
-    try {
-      await writePapersJson([...PAPERS], reason);
-      showSave("저장됨", "saved");
-    } catch (err) {
-      showSave("저장 실패: " + err.message, "error");
-    }
+    });
   }
 
   /* ============================================================
@@ -2171,6 +2192,7 @@ let PAPERS = [];
   function closeTokenModal() {
     tokenModal.classList.remove("is-open");
     tokenModalBackdrop.classList.remove("is-open");
+    pendingWriteAction = null;
   }
 
   document.getElementById("tokenSaveBtn").addEventListener("click", async () => {
@@ -2178,26 +2200,29 @@ let PAPERS = [];
     if (!t) { document.getElementById("tokenInput").focus(); return; }
     setToken(t);
     document.getElementById("tokenInput").value = "";
+    const action = pendingWriteAction;
     closeTokenModal();
-    await loadPapersFromGitHub();
+    if (action) await action();
   });
+
+  document.getElementById("tokenCancelBtn").addEventListener("click", closeTokenModal);
+  tokenModalBackdrop.addEventListener("click", closeTokenModal);
 
   document.getElementById("tokenInput").addEventListener("keydown", e => {
     if (e.key === "Enter") document.getElementById("tokenSaveBtn").click();
   });
 
   document.getElementById("tokenResetBtn").addEventListener("click", () => {
-    if (!confirm("GitHub 토큰을 초기화하고 재입력 화면으로 이동할까요?")) return;
+    if (!confirm("GitHub 토큰을 초기화할까요?")) return;
     clearToken();
-    PAPERS.length = 0;
-    renderAll();
-    openTokenModal();
+    ghFileSha = null;
+    showSave("토큰이 초기화되었습니다", "saved");
   });
 
-  // Esc closes token modal too
+  // Esc closes token modal — stopImmediatePropagation so no other keydown handler fires
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && tokenModal.classList.contains("is-open")) {
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       closeTokenModal();
     }
   }, true);
@@ -2206,12 +2231,7 @@ let PAPERS = [];
      INIT
      ============================================================ */
   async function init() {
-    if (!ghToken) {
-      openTokenModal();
-      hideLoading();
-    } else {
-      await loadPapersFromGitHub();
-    }
+    await loadPapersPublic();
   }
   init();
 
