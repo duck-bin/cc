@@ -1449,6 +1449,7 @@ let PAPERS = [];
   <div class="token-input-row">
     <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
     <button class="btn btn--primary" id="tokenSaveBtn" style="white-space:nowrap;">연결</button>
+    <button class="btn" id="tokenCancelBtn" style="white-space:nowrap;">취소</button>
   </div>
   <p class="hint">
     토큰 생성: <a href="https://github.com/settings/tokens/new?scopes=repo&description=Paper+Study" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Personal access tokens</a><br>
@@ -2191,6 +2192,7 @@ let PAPERS = [];
   function closeTokenModal() {
     tokenModal.classList.remove("is-open");
     tokenModalBackdrop.classList.remove("is-open");
+    pendingWriteAction = null;
   }
 
   document.getElementById("tokenSaveBtn").addEventListener("click", async () => {
@@ -2198,13 +2200,13 @@ let PAPERS = [];
     if (!t) { document.getElementById("tokenInput").focus(); return; }
     setToken(t);
     document.getElementById("tokenInput").value = "";
+    const action = pendingWriteAction;
     closeTokenModal();
-    if (pendingWriteAction) {
-      const action = pendingWriteAction;
-      pendingWriteAction = null;
-      await action();
-    }
+    if (action) await action();
   });
+
+  document.getElementById("tokenCancelBtn").addEventListener("click", closeTokenModal);
+  tokenModalBackdrop.addEventListener("click", closeTokenModal);
 
   document.getElementById("tokenInput").addEventListener("keydown", e => {
     if (e.key === "Enter") document.getElementById("tokenSaveBtn").click();
@@ -2217,10 +2219,10 @@ let PAPERS = [];
     showSave("토큰이 초기화되었습니다", "saved");
   });
 
-  // Esc closes token modal too
+  // Esc closes token modal — stopImmediatePropagation so no other keydown handler fires
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && tokenModal.classList.contains("is-open")) {
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       closeTokenModal();
     }
   }, true);
