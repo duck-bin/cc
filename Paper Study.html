@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper Study — Reading Log</title>
+<style>
+  /* ============================================================
+     DESIGN TOKENS
+     ============================================================ */
+  :root {
+    /* Warm neutral palette */
+    --bg:           #faf8f5;
+    --bg-elev:      #ffffff;
+    --bg-sunken:    #f3f0ea;
+    --bg-hover:     #efece5;
+    --ink:          #1a1815;
+    --ink-2:        #3d3a34;
+    --ink-3:        #6b6760;
+    --ink-4:        #9a958c;
+    --line:         #e6e1d6;
+    --line-strong:  #c8c2b3;
+
+    /* Single accent — mustard */
+    --accent:       oklch(0.62 0.14 75);
+    --accent-soft:  oklch(0.94 0.04 75);
+    --accent-ink:   oklch(0.32 0.08 75);
+
+    /* Status hues — share chroma/lightness, vary hue */
+    --st-read:      oklch(0.55 0.10 145);  /* green */
+    --st-read-bg:   oklch(0.95 0.03 145);
+    --st-reading:   oklch(0.58 0.12 75);   /* mustard */
+    --st-reading-bg:oklch(0.95 0.04 75);
+    --st-hold:      oklch(0.55 0.04 60);   /* gray-warm */
+    --st-hold-bg:   oklch(0.94 0.01 60);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+                 "Apple SD Gothic Neo", "Pretendard", "Segoe UI",
+                 system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas,
+                 "Liberation Mono", monospace;
+
+    --radius: 2px;
+    --radius-md: 4px;
+    --shadow-panel: -24px 0 60px -20px rgba(26, 24, 21, 0.18),
+                    -1px 0 0 rgba(26, 24, 21, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:           #131210;
+      --bg-elev:      #1c1a17;
+      --bg-sunken:    #0e0d0b;
+      --bg-hover:     #232017;
+      --ink:          #f3efe6;
+      --ink-2:        #d6d1c4;
+      --ink-3:        #968f7f;
+      --ink-4:        #6b6557;
+      --line:         #2a2722;
+      --line-strong:  #3d3a32;
+
+      --accent:       oklch(0.78 0.13 75);
+      --accent-soft:  oklch(0.28 0.06 75);
+      --accent-ink:   oklch(0.85 0.10 75);
+
+      --st-read:      oklch(0.78 0.12 145);
+      --st-read-bg:   oklch(0.25 0.05 145);
+      --st-reading:   oklch(0.80 0.13 75);
+      --st-reading-bg:oklch(0.26 0.06 75);
+      --st-hold:      oklch(0.70 0.02 60);
+      --st-hold-bg:   oklch(0.22 0.01 60);
+
+      --shadow-panel: -24px 0 60px -20px rgba(0, 0, 0, 0.6),
+                      -1px 0 0 rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  button { font: inherit; color: inherit; cursor: pointer; }
+  input, textarea { font: inherit; color: inherit; }
+
+  /* ============================================================
+     APP SHELL
+     ============================================================ */
+  .app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 40px 80px;
+  }
+
+  /* ============================================================
+     STATS BAR
+     ============================================================ */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 0;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    margin-bottom: 36px;
+  }
+  .stats__brand {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 18px 0 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand__title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0;
+    font-weight: 500;
+  }
+  .brand__title strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .brand__meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    letter-spacing: 0.05em;
+  }
+  .stat {
+    padding: 20px 24px 22px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat:last-child { border-right: none; }
+  .stat__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .stat__value {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stat__value::after {
+    content: attr(data-suffix);
+    font-size: 13px;
+    color: var(--ink-4);
+    margin-left: 4px;
+    font-weight: 400;
+  }
+
+  /* ============================================================
+     HEADER (search + status filter)
+     ============================================================ */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .search {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search__icon {
+    position: absolute;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--ink-4);
+    pointer-events: none;
+  }
+  .search__input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--line-strong);
+    padding: 10px 60px 10px 24px;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .search__input::placeholder { color: var(--ink-4); }
+  .search__input:focus { border-bottom-color: var(--ink); }
+  .search__kbd {
+    position: absolute;
+    right: 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    background: var(--bg-sunken);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+
+  .status-filter {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+  }
+  .status-filter button {
+    background: transparent;
+    border: none;
+    padding: 8px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    border-right: 1px solid var(--line);
+    transition: all 0.15s ease;
+  }
+  .status-filter button:last-child { border-right: none; }
+  .status-filter button:hover { color: var(--ink); background: var(--bg-hover); }
+  .status-filter button.is-active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .status-filter button.is-active:hover { background: var(--ink-2); }
+
+  /* ============================================================
+     TAG FILTER BAR
+     ============================================================ */
+  .tag-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 14px 0 22px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tag-bar__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 5px 10px 5px 0;
+    margin-right: 4px;
+  }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 4px 10px 4px 11px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    transition: all 0.12s ease;
+  }
+  .tag-pill:hover {
+    color: var(--ink);
+    border-color: var(--ink-3);
+  }
+  .tag-pill.is-active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .tag-pill__count {
+    font-size: 9px;
+    color: var(--ink-4);
+    font-weight: 400;
+  }
+  .tag-pill.is-active .tag-pill__count {
+    color: var(--bg-sunken);
+    opacity: 0.7;
+  }
+  .tag-bar__clear {
+    background: none;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 8px;
+    margin-left: auto;
+  }
+  .tag-bar__clear:hover { color: var(--ink); }
+
+  /* ============================================================
+     TABLE
+     ============================================================ */
+  .table-wrap {
+    transition: padding-right 0.42s cubic-bezier(0.32, 0.72, 0.24, 1);
+  }
+  .table-wrap.has-panel {
+    padding-right: 480px;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .table thead th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-strong);
+    font-weight: 500;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .table thead th.sortable {
+    cursor: pointer;
+    transition: color 0.12s ease;
+  }
+  .table thead th.sortable:hover { color: var(--ink); }
+  .table thead th .sort-arrow {
+    display: inline-block;
+    margin-left: 4px;
+    opacity: 0;
+    color: var(--accent-ink);
+    font-size: 9px;
+    transition: opacity 0.12s ease;
+  }
+  .table thead th.is-sorted .sort-arrow { opacity: 1; }
+
+  .table tbody tr {
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .table tbody tr:hover { background: var(--bg-hover); }
+  .table tbody tr.is-selected {
+    background: var(--accent-soft);
+  }
+  .table tbody tr.is-selected td:first-child {
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  .table td {
+    padding: 14px 16px;
+    vertical-align: top;
+  }
+
+  .col-no {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    width: 56px;
+    padding-top: 16px !important;
+    letter-spacing: 0.05em;
+  }
+  .col-paper { min-width: 280px; }
+  .paper__title {
+    color: var(--ink);
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.35;
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+  }
+  .paper__summary {
+    color: var(--ink-3);
+    font-size: 12px;
+    line-height: 1.45;
+    margin: 0;
+  }
+  .col-authors { width: 160px; }
+  .authors__primary {
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+  .authors__meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    color: var(--ink-4);
+    margin-top: 3px;
+  }
+  .col-tags {
+    width: 200px;
+  }
+  .tag-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tag-mini {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--bg-sunken);
+    padding: 3px 7px;
+    border-radius: 2px;
+    border: 1px solid var(--line);
+  }
+
+  .col-status { width: 100px; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 4px 9px 4px 8px;
+    border-radius: 2px;
+    border: 1px solid transparent;
+    transition: all 0.1s ease;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .status-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-badge.s-read     { color: var(--st-read);    background: var(--st-read-bg); }
+  .status-badge.s-read::before    { background: var(--st-read); }
+  .status-badge.s-reading  { color: var(--st-reading); background: var(--st-reading-bg); }
+  .status-badge.s-reading::before { background: var(--st-reading); }
+  .status-badge.s-hold     { color: var(--st-hold);    background: var(--st-hold-bg); }
+  .status-badge.s-hold::before    { background: var(--st-hold); }
+  .status-badge:hover {
+    border-color: currentColor;
+  }
+
+  .col-date {
+    width: 100px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.02em;
+    padding-top: 17px !important;
+  }
+  .col-date.is-empty { color: var(--ink-4); }
+
+  /* ============================================================
+     EMPTY STATE
+     ============================================================ */
+  .empty {
+    padding: 80px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .empty__mark {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--ink-4);
+    margin-bottom: 18px;
+  }
+  .empty__title {
+    font-size: 18px;
+    color: var(--ink);
+    margin: 0 0 8px;
+    font-weight: 500;
+  }
+  .empty__hint {
+    color: var(--ink-3);
+    font-size: 13px;
+    margin: 0 0 24px;
+  }
+  .empty__reset {
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    padding: 9px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    transition: opacity 0.15s ease;
+  }
+  .empty__reset:hover { opacity: 0.85; }
+
+  /* ============================================================
+     DETAIL PANEL
+     ============================================================ */
+  .panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 480px;
+    height: 100vh;
+    background: var(--bg-elev);
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-panel);
+    transform: translateX(100%);
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0.24, 1);
+    overflow-y: auto;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel.is-open { transform: translateX(0); }
+
+  .panel__head {
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: var(--bg-elev);
+    z-index: 2;
+  }
+  .panel__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .panel__no {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--ink-4);
+    text-transform: uppercase;
+  }
+  .panel__close {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease;
+  }
+  .panel__close:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .panel__title {
+    font-size: 19px;
+    line-height: 1.3;
+    color: var(--ink);
+    font-weight: 500;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .panel__summary {
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.55;
+    margin: 0 0 18px;
+  }
+
+  .panel__body {
+    padding: 24px 32px 60px;
+    flex: 1;
+  }
+  .field {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .field:last-child { border-bottom: none; }
+  .field__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  .field__value {
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .field__row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .field__row:last-child { margin-bottom: 0; }
+  .field__row dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    padding-top: 2px;
+  }
+  .field__row dd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+
+  /* Progress dots */
+  .progress {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .progress__dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.12s ease;
+  }
+  .progress__dot::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: transparent;
+    transition: background 0.12s ease;
+  }
+  .progress__dot:hover { border-color: var(--accent-ink); }
+  .progress__dot.is-on {
+    border-color: var(--accent);
+  }
+  .progress__dot.is-on::after { background: var(--accent); }
+  .progress__label {
+    margin-left: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+  }
+
+  /* Notes textarea */
+  .notes {
+    width: 100%;
+    min-height: 140px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    font-family: var(--font-sans);
+  }
+  .notes:focus {
+    border-color: var(--ink-3);
+    background: var(--bg-elev);
+  }
+  .notes-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* External link button */
+  .extlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--bg);
+    text-decoration: none;
+    padding: 11px 16px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: opacity 0.15s ease;
+  }
+  .extlink:hover { opacity: 0.85; }
+  .extlink svg { width: 12px; height: 12px; }
+
+  /* ============================================================
+     RESPONSIVE — mobile turns panel into bottom sheet
+     ============================================================ */
+  @media (max-width: 760px) {
+    .app { padding: 20px 16px 60px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { padding: 16px 14px 18px; }
+    .stat:nth-child(2) { border-right: none; }
+    .stat:nth-child(3), .stat:nth-child(4) {
+      border-top: 1px solid var(--line);
+    }
+    .stat__value { font-size: 24px; }
+
+    .header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+    .search__kbd { display: none; }
+
+    .table-wrap.has-panel { padding-right: 0; }
+
+    /* Mobile table → card list */
+    .table thead { display: none; }
+    .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+    .table tr {
+      padding: 16px 0;
+      position: relative;
+    }
+    .table td { padding: 4px 0; }
+    .col-no {
+      position: absolute;
+      top: 16px;
+      right: 0;
+      width: auto;
+      padding: 0 !important;
+    }
+    .col-date { padding-top: 6px !important; }
+
+    /* Bottom sheet */
+    .panel {
+      width: 100%;
+      height: 88vh;
+      top: auto;
+      bottom: 0;
+      border-left: none;
+      border-top: 1px solid var(--line);
+      border-radius: 16px 16px 0 0;
+      transform: translateY(100%);
+      box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.25);
+    }
+    .panel.is-open { transform: translateY(0); }
+    .panel__head::before {
+      content: "";
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: var(--line-strong);
+      border-radius: 2px;
+      margin: -8px auto 14px;
+    }
+  }
+
+  /* ============================================================
+     ADD/EDIT MODAL
+     ============================================================ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 18, 14, 0);
+    z-index: 90;
+    pointer-events: none;
+    transition: background 0.2s ease;
+  }
+  .modal-backdrop.is-open {
+    background: rgba(20, 18, 14, 0.42);
+    pointer-events: auto;
+    backdrop-filter: blur(2px);
+  }
+  .modal {
+    position: fixed;
+    z-index: 100;
+    top: 50%;
+    left: 50%;
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    transform: translate(-50%, -48%) scale(0.98);
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    box-shadow: 0 24px 80px -20px rgba(20,18,14,0.35),
+                0 0 0 1px rgba(20,18,14,0.04);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.32, 0.72, 0.24, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .modal__head {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .modal__head h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .modal__head .modal__mark {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+  }
+  .modal__body {
+    padding: 22px 28px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 20px;
+  }
+  .modal__body .col-span-2 { grid-column: span 2; }
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-field label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .form-field label .req { color: var(--accent-ink); margin-left: 2px; }
+  .form-field input[type="text"],
+  .form-field input[type="number"],
+  .form-field input[type="url"],
+  .form-field textarea,
+  .form-field select {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 9px 11px;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.12s ease, background 0.12s ease;
+    font-family: var(--font-sans);
+  }
+  .form-field textarea {
+    min-height: 70px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .form-field input:focus,
+  .form-field textarea:focus,
+  .form-field select:focus {
+    border-color: var(--ink-3);
+    background: var(--bg-elev);
+  }
+  .form-field .hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.04em;
+  }
+  .form-field--row {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .seg {
+    display: flex;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .seg button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-right: 1px solid var(--line);
+    transition: all 0.12s ease;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { background: var(--bg-hover); color: var(--ink); }
+  .seg button.is-active { background: var(--ink); color: var(--bg); }
+
+  .modal__foot {
+    padding: 16px 28px 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg);
+  }
+  .btn {
+    padding: 9px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    transition: all 0.12s ease;
+  }
+  .btn:hover { background: var(--bg-hover); color: var(--ink); }
+  .btn--primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .btn--primary:hover { background: var(--ink-2); border-color: var(--ink-2); color: var(--bg); }
+  .btn--danger {
+    color: oklch(0.55 0.13 25);
+    border-color: var(--line);
+  }
+  .btn--danger:hover {
+    color: oklch(0.50 0.18 25);
+    border-color: oklch(0.55 0.13 25);
+    background: transparent;
+  }
+
+  /* Add button (top-right of stats) */
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--bg);
+    border: 1px solid var(--ink);
+    padding: 7px 12px 7px 10px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: opacity 0.15s ease;
+  }
+  .add-btn:hover { opacity: 0.85; }
+  .add-btn svg { width: 12px; height: 12px; }
+
+  /* Edit button inside panel head */
+  .panel__edit {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-left: 8px;
+    transition: all 0.12s ease;
+  }
+  .panel__edit:hover { color: var(--ink); border-color: var(--ink); }
+
+  @media (max-width: 760px) {
+    .modal__body { grid-template-columns: 1fr; }
+    .modal__body .col-span-2 { grid-column: auto; }
+    .form-field--row { grid-column: auto; grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Deep notes (structured) */
+  .deep-notes { display: flex; flex-direction: column; gap: 4px; }
+  .dnote {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    overflow: hidden;
+    transition: border-color 0.12s ease;
+  }
+  .dnote:hover { border-color: var(--line-strong); }
+  .dnote.is-filled { border-color: var(--line-strong); }
+  .dnote__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .dnote__num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    width: 18px;
+  }
+  .dnote__title {
+    flex: 1;
+    font-size: 12px;
+    color: var(--ink-2);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .dnote.is-filled .dnote__title { color: var(--ink); }
+  .dnote__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--line-strong);
+    flex-shrink: 0;
+    transition: background 0.12s ease;
+  }
+  .dnote.is-filled .dnote__dot { background: var(--accent); }
+  .dnote__chev {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    transition: transform 0.18s ease;
+  }
+  .dnote.is-open .dnote__chev { transform: rotate(90deg); color: var(--ink-2); }
+  .dnote__body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.22s ease;
+  }
+  .dnote.is-open .dnote__body { max-height: 600px; }
+  .dnote__body textarea {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--line);
+    background: var(--bg-sunken);
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    outline: none;
+    resize: vertical;
+    min-height: 90px;
+    box-sizing: border-box;
+  }
+  .dnote__body textarea:focus { background: var(--bg-elev); }
+
+  /* Modal: deep notes block */
+  .deep-notes-form {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .deep-notes-form > label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .dnote-form-row {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  .dnote-form-row .num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    padding-top: 26px;
+    letter-spacing: 0.08em;
+  }
+  .dnote-form-row .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dnote-form-row .stack span {
+    font-size: 11px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .dnote-form-row textarea {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.12s ease, background 0.12s ease;
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 54px;
+    resize: vertical;
+  }
+  .dnote-form-row textarea:focus {
+    border-color: var(--ink-3);
+    background: var(--bg-elev);
+  }
+
+  /* Backdrop on mobile */
+  .panel-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    z-index: 49;
+    pointer-events: none;
+    transition: background 0.3s ease;
+  }
+  @media (max-width: 760px) {
+    .panel-backdrop.is-open {
+      background: rgba(0,0,0,0.4);
+      pointer-events: auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAPER DATA — add a new entry by copying one block.
+     ============================================================
+     Each block looks like this:
+
+     {
+       no: 4,
+       title: "English title here",
+       summary: "한국어 한줄 요약",
+       authors: ["LastnameA", "LastnameB", "LastnameC"],
+       venue: "ICLR",
+       year: 2025,
+       tags: ["llm", "alignment"],
+       status: "reading",        // "read" | "reading" | "hold"
+       date_read: "2025.04.12",  // empty string if not yet read
+       progress: 3,              // 1–5
+       notes: "free-form notes",
+       deep_notes: {
+         problem:  "...", fail: "...", insight: "...",
+         method:   "...", results: "...", limits: "...", takeaway: "...",
+       },
+       url: "https://arxiv.org/abs/...",
+     },
+     ============================================================ -->
+<script>
+const PAPERS = [
+
+  // ─────────────────────────────────────────────────────────────
+  {
+    no: 1,
+    title: "Attention Is All You Need",
+    summary: "순환·합성곱 없이 셀프 어텐션만으로 시퀀스를 처리하는 트랜스포머 구조 제안.",
+    authors: ["Vaswani", "Shazeer", "Parmar"],
+    venue: "NeurIPS",
+    year: 2017,
+    tags: ["transformer", "nlp", "architecture"],
+    status: "read",
+    date_read: "2025.03.04",
+    progress: 5,
+    notes: "스케일드 닷프로덕트 어텐션과 멀티헤드 구성을 다시 정리. 포지셔널 인코딩 부분은 학습형으로 바꾸는 후속 연구를 추가로 볼 것.",
+    deep_notes: {
+      problem:  "Sequence transduction을 길이 N의 토큰열 → 길이 M의 토큰열 매핑으로 정의하고, 임의 위치 간 의존성을 O(1) path length로 모델링하는 것을 목표로 함.",
+      fail:     "RNN은 순차 계산으로 병렬화가 막히고 long-range dependency를 잃음. CNN은 거리 비례 path length로 정보 전달이 비효율.",
+      insight:  "재귀 없이 self-attention만으로 시퀀스를 표현하면 path length는 O(1), 병렬성은 자유롭다.",
+      method:   "인코더/디코더 6스택 · Multi-Head Self-Attn → FFN. 위치는 sinusoidal encoding으로 주입. residual + layer norm.",
+      results:  "WMT En-De 28.4 BLEU, En-Fr 41.8 BLEU. 학습 시간은 기존 SOTA 대비 일부분.",
+      limits:   "긴 시퀀스에서 O(N²) 메모리 비용. 위치 표현이 명시적 inductive bias 없음.",
+      takeaway: "Attention 만으로 충분하다는 명제를 증명한 시점부터, 시퀀스 모델 설계의 기본 단위가 RNN/CNN에서 self-attention으로 이동.",
+    },
+    url: "https://arxiv.org/abs/1706.03762",
+  },
+  // ─────────────────────────────────────────────────────────────
+  {
+    no: 2,
+    title: "Denoising Diffusion Probabilistic Models",
+    summary: "노이즈 추가/제거 마르코프 체인으로 고품질 이미지 생성을 달성한 확산 모델의 기초 논문.",
+    authors: ["Ho", "Jain", "Abbeel"],
+    venue: "NeurIPS",
+    year: 2020,
+    tags: ["diffusion", "generative", "vision"],
+    status: "reading",
+    date_read: "",
+    progress: 3,
+    notes: "ELBO 유도 부분을 다시 따라가는 중. 분산 스케줄(linear vs cosine) 비교 실험을 별도 메모로 정리할 것.",
+    url: "https://arxiv.org/abs/2006.11239",
+  },
+  // ─────────────────────────────────────────────────────────────
+  {
+    no: 3,
+    title: "Language Models are Few-Shot Learners",
+    summary: "175B 파라미터 모델이 in-context learning만으로 다양한 태스크에서 강한 성능을 보임을 보고.",
+    authors: ["Brown", "Mann", "Ryder"],
+    venue: "NeurIPS",
+    year: 2020,
+    tags: ["llm", "nlp", "in-context-learning"],
+    status: "hold",
+    date_read: "",
+    progress: 2,
+    notes: "벤치마크 섹션이 길어 잠시 보류. 추후 emergent abilities 논의와 함께 다시 읽기.",
+    url: "https://arxiv.org/abs/2005.14165",
+  },
+
+];
+</script>
+
+<!-- ============================================================
+     UI
+     ============================================================ -->
+<div class="app">
+
+  <!-- STATS -->
+  <section class="stats" aria-label="reading stats">
+    <div class="stats__brand">
+      <h1 class="brand__title"><strong>Paper Study</strong> &nbsp;·&nbsp; reading log</h1>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span class="brand__meta" id="lastUpdated">—</span>
+        <button class="add-btn" id="addPaperBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          New Paper
+        </button>
+      </div>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Total</span>
+      <span class="stat__value" id="statTotal" data-suffix="papers">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Read</span>
+      <span class="stat__value" id="statRead" data-suffix="done">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Reading</span>
+      <span class="stat__value" id="statReading" data-suffix="in&nbsp;progress">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">On Hold</span>
+      <span class="stat__value" id="statHold" data-suffix="paused">0</span>
+    </div>
+  </section>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="search">
+      <svg class="search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+      <input id="searchInput" class="search__input" type="search"
+             placeholder="제목, 저자, 키워드, 태그…" autocomplete="off" />
+      <span class="search__kbd">/</span>
+    </div>
+    <div class="status-filter" role="tablist">
+      <button data-filter="all" class="is-active">All</button>
+      <button data-filter="reading">Reading</button>
+      <button data-filter="hold">Hold</button>
+    </div>
+  </header>
+
+  <!-- TAG FILTER -->
+  <div class="tag-bar" id="tagBar">
+    <span class="tag-bar__label">Tags</span>
+    <!-- pills injected -->
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap" id="tableWrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="sortable" data-sort="no">No.<span class="sort-arrow">↑</span></th>
+          <th class="sortable" data-sort="title">Paper<span class="sort-arrow">↑</span></th>
+          <th>Authors</th>
+          <th>Tags</th>
+          <th>Status</th>
+          <th class="sortable" data-sort="date">Date Read<span class="sort-arrow">↑</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="empty" id="emptyState" hidden>
+      <div class="empty__mark">— NO RESULTS —</div>
+      <h3 class="empty__title">조건에 맞는 논문이 없습니다</h3>
+      <p class="empty__hint">검색어나 필터를 바꿔 보거나, 전체로 초기화해 보세요.</p>
+      <button class="empty__reset" id="resetFilters">필터 초기화</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-backdrop" id="modalBackdrop"></div>
+<div class="modal" id="modal" role="dialog" aria-hidden="true" aria-labelledby="modalTitle">
+  <div class="modal__head">
+    <h2 id="modalTitle">새 논문 추가</h2>
+    <span class="modal__mark" id="modalMark">— NEW ENTRY —</span>
+  </div>
+  <form id="paperForm" class="modal__body" autocomplete="off">
+    <div class="form-field col-span-2">
+      <label for="fTitle">Title <span class="req">*</span></label>
+      <input type="text" id="fTitle" required placeholder="English title of the paper" />
+    </div>
+    <div class="form-field col-span-2">
+      <label for="fSummary">한줄 요약</label>
+      <textarea id="fSummary" placeholder="한국어 한 줄 요약을 적어 주세요."></textarea>
+    </div>
+    <div class="form-field">
+      <label for="fAuthors">Authors</label>
+      <input type="text" id="fAuthors" placeholder="Vaswani, Shazeer, Parmar" />
+      <span class="hint">comma separated · last names</span>
+    </div>
+    <div class="form-field">
+      <label for="fTags">Tags</label>
+      <input type="text" id="fTags" placeholder="transformer, nlp" />
+      <span class="hint">comma separated · lowercase</span>
+    </div>
+    <div class="form-field--row">
+      <div class="form-field">
+        <label for="fVenue">Venue</label>
+        <input type="text" id="fVenue" placeholder="NeurIPS" />
+      </div>
+      <div class="form-field">
+        <label for="fYear">Year</label>
+        <input type="number" id="fYear" min="1900" max="2099" placeholder="2025" />
+      </div>
+      <div class="form-field">
+        <label for="fDate">Date Read</label>
+        <input type="text" id="fDate" placeholder="YYYY.MM.DD" />
+      </div>
+    </div>
+    <div class="form-field">
+      <label>Status</label>
+      <div class="seg" id="fStatusSeg">
+        <button type="button" data-val="reading" class="is-active">Reading</button>
+        <button type="button" data-val="read">Read</button>
+        <button type="button" data-val="hold">Hold</button>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>Progress</label>
+      <div class="seg" id="fProgressSeg">
+        <button type="button" data-val="0">0</button>
+        <button type="button" data-val="1">1</button>
+        <button type="button" data-val="2">2</button>
+        <button type="button" data-val="3" class="is-active">3</button>
+        <button type="button" data-val="4">4</button>
+        <button type="button" data-val="5">5</button>
+      </div>
+    </div>
+    <div class="form-field col-span-2">
+      <label for="fUrl">Source URL</label>
+      <input type="url" id="fUrl" placeholder="https://arxiv.org/abs/..." />
+    </div>
+    <div class="form-field col-span-2">
+      <label for="fNotes">Notes</label>
+      <textarea id="fNotes" placeholder="자유 메모"></textarea>
+    </div>
+    <div class="deep-notes-form">
+      <label>Deep Notes — 구조화 메모</label>
+      <div id="fDeepNotes"></div>
+    </div>
+  </form>
+  <div class="modal__foot">
+    <button type="button" class="btn btn--danger" id="modalDelete" hidden>Delete</button>
+    <div style="display:flex; gap:8px; margin-left:auto;">
+      <button type="button" class="btn" id="modalCancel">Cancel</button>
+      <button type="submit" form="paperForm" class="btn btn--primary" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="panel-backdrop" id="panelBackdrop"></div>
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="panel__head">
+    <div class="panel__topline">
+      <span class="panel__no" id="panelNo">—</span>
+      <button class="panel__close" id="panelClose" aria-label="닫기">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <h2 class="panel__title" id="panelTitle">—</h2>
+    <p class="panel__summary" id="panelSummary"></p>
+    <div style="display:flex; align-items:center; gap:0; flex-wrap:wrap;">
+      <button class="status-badge" id="panelStatus">—</button>
+      <button class="panel__edit" id="panelEdit">Edit</button>
+    </div>
+  </div>
+
+  <div class="panel__body">
+    <section class="field">
+      <p class="field__label">Bibliography</p>
+      <dl style="margin:0;">
+        <div class="field__row"><dt>Authors</dt><dd id="panelAuthors">—</dd></div>
+        <div class="field__row"><dt>Venue</dt><dd id="panelVenue">—</dd></div>
+        <div class="field__row"><dt>Year</dt><dd id="panelYear">—</dd></div>
+        <div class="field__row"><dt>Tags</dt><dd id="panelTags">—</dd></div>
+        <div class="field__row"><dt>Date Read</dt><dd id="panelDateRead">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="field">
+      <p class="field__label">Reading Progress</p>
+      <div class="progress" id="panelProgress">
+        <button class="progress__dot" data-step="1" aria-label="step 1"></button>
+        <button class="progress__dot" data-step="2" aria-label="step 2"></button>
+        <button class="progress__dot" data-step="3" aria-label="step 3"></button>
+        <button class="progress__dot" data-step="4" aria-label="step 4"></button>
+        <button class="progress__dot" data-step="5" aria-label="step 5"></button>
+        <span class="progress__label" id="panelProgressLabel">—</span>
+      </div>
+    </section>
+
+    <section class="field">
+      <p class="field__label">Notes</p>
+      <textarea class="notes" id="panelNotes" placeholder="이 논문에 대한 메모를 자유롭게 적어두세요. 변경사항은 자동으로 저장됩니다."></textarea>
+      <div class="notes-meta">
+        <span id="notesSaved">—</span>
+        <span id="notesCount">0 chars</span>
+      </div>
+    </section>
+
+    <section class="field">
+      <p class="field__label">Deep Notes <span style="font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; color:var(--ink-4); margin-left:6px; text-transform:none;">structured · auto-save</span></p>
+      <div id="deepNotesList" class="deep-notes"></div>
+    </section>
+
+    <section class="field">
+      <p class="field__label">External</p>
+      <a class="extlink" id="panelLink" href="#" target="_blank" rel="noopener">
+        Open Source
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M7 17 17 7M9 7h8v8"/>
+        </svg>
+      </a>
+    </section>
+  </div>
+</aside>
+
+<script>
+  /* ============================================================
+     STATE
+     ============================================================ */
+  const STORAGE_KEY = "paper-study-v1";
+  const USER_KEY    = "paper-study-user-v1";
+  const EDITS_KEY   = "paper-study-edits-v1";
+  const DELETED_KEY = "paper-study-deleted-v1";
+  const STATUS_ORDER = ["reading", "read", "hold"];
+  const STATUS_LABEL = { read: "읽음", reading: "읽는 중", hold: "보류" };
+  const STATUS_CLASS = { read: "s-read", reading: "s-reading", hold: "s-hold" };
+  const PROGRESS_LABEL = ["—", "훑어봄", "초독 진행", "재독 중", "정독 완료", "마스터"];
+
+  // Structured deep-note fields (the 7 academic memo sections)
+  const DEEP_NOTE_FIELDS = [
+    { key: "problem",    label: "Problem Definition (Formalized)",
+      hint: "어떤 문제를 어떤 가정·기호로 정의했는가." },
+    { key: "fail",       label: "Why Existing Methods Fail",
+      hint: "기존 접근의 한계, 실패 모드, 가정의 깨짐." },
+    { key: "insight",    label: "Core Insight (The Idea)",
+      hint: "한 줄로 요약 가능한 핵심 통찰." },
+    { key: "method",     label: "Method Overview (Structure > Math)",
+      hint: "구조 / 모듈 / 데이터 흐름 중심으로." },
+    { key: "results",    label: "Key Results: SOTA & Robustness",
+      hint: "결정적 표·그림 한두 개 요지." },
+    { key: "limits",     label: "Limitations",
+      hint: "저자가 인정한 점 + 내가 본 약점." },
+    { key: "takeaway",   label: "Takeaway: The Paradigm Shift",
+      hint: "이 논문이 분야에 무엇을 남기는가." },
+  ];
+
+  // Hydrate from storage
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; }
+    catch { return fallback; }
+  }
+  function saveOverrides() { localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides)); }
+  function saveUserPapers() { localStorage.setItem(USER_KEY, JSON.stringify(userPapers)); }
+  function saveEdits() { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)); }
+  function saveDeleted() { localStorage.setItem(DELETED_KEY, JSON.stringify([...deleted])); }
+
+  let overrides  = loadJSON(STORAGE_KEY, {});
+  let userPapers = loadJSON(USER_KEY, []);   // full paper objects added in-app
+  let edits      = loadJSON(EDITS_KEY, {});  // full-field edits to seed PAPERS by no
+  let deleted    = new Set(loadJSON(DELETED_KEY, []));
+
+  // Apply edits and remove deleted from seed PAPERS
+  for (let i = PAPERS.length - 1; i >= 0; i--) {
+    if (deleted.has(PAPERS[i].no)) { PAPERS.splice(i, 1); continue; }
+    const e = edits[PAPERS[i].no];
+    if (e) Object.assign(PAPERS[i], e);
+  }
+  // Append user-added papers
+  userPapers.forEach(p => PAPERS.push(p));
+
+  // Apply lightweight overrides (status / notes / progress / date_read)
+  PAPERS.forEach(p => {
+    const o = overrides[p.no];
+    if (o) {
+      if (o.status   !== undefined) p.status   = o.status;
+      if (o.notes    !== undefined) p.notes    = o.notes;
+      if (o.progress !== undefined) p.progress = o.progress;
+      if (o.date_read!== undefined) p.date_read= o.date_read;
+      if (o.deep_notes !== undefined) p.deep_notes = o.deep_notes;
+    }
+  });
+
+  function nextNo() {
+    return PAPERS.reduce((m,p) => Math.max(m, p.no), 0) + 1;
+  }
+  function isUserPaper(no) { return userPapers.some(p => p.no === no); }
+
+  let state = {
+    search: "",
+    status: "all",     // all | reading | hold
+    activeTags: new Set(),
+    sortKey: "no",
+    sortDir: "asc",
+    selectedNo: null,
+  };
+
+  /* ============================================================
+     RENDER — STATS
+     ============================================================ */
+  function renderStats() {
+    const total = PAPERS.length;
+    const r = PAPERS.filter(p => p.status === "read").length;
+    const ing = PAPERS.filter(p => p.status === "reading").length;
+    const h = PAPERS.filter(p => p.status === "hold").length;
+    document.getElementById("statTotal").textContent = String(total).padStart(2,"0");
+    document.getElementById("statRead").textContent = String(r).padStart(2,"0");
+    document.getElementById("statReading").textContent = String(ing).padStart(2,"0");
+    document.getElementById("statHold").textContent = String(h).padStart(2,"0");
+
+    const dates = PAPERS.map(p => p.date_read).filter(Boolean).sort();
+    const last = dates[dates.length-1] || "—";
+    document.getElementById("lastUpdated").textContent = "LAST READ · " + last;
+  }
+
+  /* ============================================================
+     RENDER — TAG BAR
+     ============================================================ */
+  function renderTags() {
+    const counts = {};
+    PAPERS.forEach(p => p.tags.forEach(t => counts[t] = (counts[t]||0)+1));
+    const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
+
+    const bar = document.getElementById("tagBar");
+    // keep label, clear pills
+    bar.querySelectorAll(".tag-pill, .tag-bar__clear").forEach(n => n.remove());
+
+    sorted.forEach(([tag, count]) => {
+      const btn = document.createElement("button");
+      btn.className = "tag-pill" + (state.activeTags.has(tag) ? " is-active" : "");
+      btn.innerHTML = `${tag} <span class="tag-pill__count">${count}</span>`;
+      btn.addEventListener("click", () => {
+        if (state.activeTags.has(tag)) state.activeTags.delete(tag);
+        else state.activeTags.add(tag);
+        renderTags();
+        renderTable();
+      });
+      bar.appendChild(btn);
+    });
+
+    if (state.activeTags.size > 0) {
+      const clear = document.createElement("button");
+      clear.className = "tag-bar__clear";
+      clear.textContent = "Clear (" + state.activeTags.size + ")";
+      clear.addEventListener("click", () => {
+        state.activeTags.clear();
+        renderTags();
+        renderTable();
+      });
+      bar.appendChild(clear);
+    }
+  }
+
+  /* ============================================================
+     RENDER — TABLE
+     ============================================================ */
+  function getFiltered() {
+    const q = state.search.trim().toLowerCase();
+    return PAPERS.filter(p => {
+      if (state.status !== "all" && p.status !== state.status) return false;
+      if (state.activeTags.size > 0) {
+        const hasAll = [...state.activeTags].every(t => p.tags.includes(t));
+        if (!hasAll) return false;
+      }
+      if (q) {
+        const hay = [
+          p.title, p.summary, p.authors.join(" "), p.tags.join(" "), p.venue
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function getSorted(rows) {
+    const dir = state.sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a,b) => {
+      let va, vb;
+      if (state.sortKey === "no") { va = a.no; vb = b.no; }
+      else if (state.sortKey === "title") { va = a.title.toLowerCase(); vb = b.title.toLowerCase(); }
+      else if (state.sortKey === "date") {
+        va = a.date_read || "0000.00.00";
+        vb = b.date_read || "0000.00.00";
+      }
+      if (va < vb) return -1*dir;
+      if (va > vb) return  1*dir;
+      return 0;
+    });
+  }
+
+  function renderTable() {
+    const rows = getSorted(getFiltered());
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+    document.getElementById("emptyState").hidden = rows.length > 0;
+
+    rows.forEach(p => {
+      const tr = document.createElement("tr");
+      if (state.selectedNo === p.no) tr.classList.add("is-selected");
+      tr.dataset.no = p.no;
+
+      const authorsLine = p.authors[0] + (p.authors.length > 1 ? ` +${p.authors.length-1}` : "");
+      const venueLine = `${p.venue} · ${p.year}`;
+      const tagsHtml = p.tags.map(t => `<span class="tag-mini">${t}</span>`).join("");
+
+      tr.innerHTML = `
+        <td class="col-no">${String(p.no).padStart(3,"0")}</td>
+        <td class="col-paper">
+          <p class="paper__title">${escapeHtml(p.title)}</p>
+          <p class="paper__summary">${escapeHtml(p.summary)}</p>
+        </td>
+        <td class="col-authors">
+          <div class="authors__primary">${escapeHtml(authorsLine)}</div>
+          <div class="authors__meta">${escapeHtml(venueLine)}</div>
+        </td>
+        <td class="col-tags"><div class="tag-cell">${tagsHtml}</div></td>
+        <td class="col-status">
+          <button class="status-badge ${STATUS_CLASS[p.status]}" data-status-toggle="${p.no}">
+            ${STATUS_LABEL[p.status]}
+          </button>
+        </td>
+        <td class="col-date ${p.date_read ? "" : "is-empty"}">${p.date_read || "—"}</td>
+      `;
+
+      tr.addEventListener("click", (e) => {
+        if (e.target.closest("[data-status-toggle]")) return;
+        openPanel(p.no);
+      });
+      tbody.appendChild(tr);
+    });
+
+    // Status toggles
+    tbody.querySelectorAll("[data-status-toggle]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const no = +btn.dataset.statusToggle;
+        cycleStatus(no);
+      });
+    });
+
+    // Sort indicators
+    document.querySelectorAll("th.sortable").forEach(th => {
+      const isActive = th.dataset.sort === state.sortKey;
+      th.classList.toggle("is-sorted", isActive);
+      const arrow = th.querySelector(".sort-arrow");
+      if (arrow) arrow.textContent = state.sortDir === "asc" ? "↑" : "↓";
+    });
+  }
+
+  /* ============================================================
+     STATUS CYCLE
+     ============================================================ */
+  function cycleStatus(no) {
+    const p = PAPERS.find(x => x.no === no);
+    if (!p) return;
+    const idx = STATUS_ORDER.indexOf(p.status);
+    p.status = STATUS_ORDER[(idx+1) % STATUS_ORDER.length];
+    if (p.status === "read" && !p.date_read) {
+      const d = new Date();
+      p.date_read = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+    }
+    overrides[no] = overrides[no] || {};
+    overrides[no].status = p.status;
+    if (p.date_read) overrides[no].date_read = p.date_read;
+    saveOverrides();
+    renderAll();
+    if (state.selectedNo === no) hydratePanel(p);
+  }
+
+  /* ============================================================
+     PANEL
+     ============================================================ */
+  const panel = document.getElementById("panel");
+  const backdrop = document.getElementById("panelBackdrop");
+  const tableWrap = document.getElementById("tableWrap");
+
+  function openPanel(no) {
+    const p = PAPERS.find(x => x.no === no);
+    if (!p) return;
+    state.selectedNo = no;
+    hydratePanel(p);
+    panel.classList.add("is-open");
+    panel.setAttribute("aria-hidden", "false");
+    backdrop.classList.add("is-open");
+    tableWrap.classList.add("has-panel");
+    // re-render to mark selected row
+    renderTable();
+  }
+  function closePanel() {
+    state.selectedNo = null;
+    panel.classList.remove("is-open");
+    panel.setAttribute("aria-hidden", "true");
+    backdrop.classList.remove("is-open");
+    tableWrap.classList.remove("has-panel");
+    renderTable();
+  }
+
+  function hydratePanel(p) {
+    document.getElementById("panelNo").textContent = `Paper · ${String(p.no).padStart(3,"0")}`;
+    document.getElementById("panelTitle").textContent = p.title;
+    document.getElementById("panelSummary").textContent = p.summary;
+
+    const stBtn = document.getElementById("panelStatus");
+    stBtn.className = `status-badge ${STATUS_CLASS[p.status]}`;
+    stBtn.textContent = STATUS_LABEL[p.status];
+    stBtn.onclick = () => cycleStatus(p.no);
+
+    document.getElementById("panelAuthors").textContent = p.authors.join(", ");
+    document.getElementById("panelVenue").textContent = p.venue;
+    document.getElementById("panelYear").textContent = p.year;
+    document.getElementById("panelTags").innerHTML =
+      p.tags.map(t => `<span class="tag-mini">${t}</span>`).join(" ");
+    document.getElementById("panelDateRead").textContent = p.date_read || "— 미독";
+
+    // progress
+    const dots = document.querySelectorAll("#panelProgress .progress__dot");
+    dots.forEach(d => {
+      const step = +d.dataset.step;
+      d.classList.toggle("is-on", step <= (p.progress || 0));
+      d.onclick = () => {
+        p.progress = (p.progress === step) ? step - 1 : step;
+        if (p.progress < 0) p.progress = 0;
+        overrides[p.no] = overrides[p.no] || {};
+        overrides[p.no].progress = p.progress;
+        saveOverrides();
+        hydratePanel(p);
+      };
+    });
+    document.getElementById("panelProgressLabel").textContent =
+      `${p.progress || 0}/5 · ${PROGRESS_LABEL[p.progress] || "—"}`;
+
+    // notes
+    const notes = document.getElementById("panelNotes");
+    notes.value = p.notes || "";
+    document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
+    document.getElementById("notesSaved").textContent = "저장됨";
+    notes.oninput = () => {
+      p.notes = notes.value;
+      overrides[p.no] = overrides[p.no] || {};
+      overrides[p.no].notes = notes.value;
+      saveOverrides();
+      document.getElementById("notesCount").textContent = notes.value.length + " chars";
+      document.getElementById("notesSaved").textContent = "저장됨 · " + nowTime();
+    };
+
+    // link
+    const link = document.getElementById("panelLink");
+    if (p.url) {
+      link.href = p.url;
+      link.style.opacity = "1";
+      link.style.pointerEvents = "auto";
+    } else {
+      link.href = "#";
+      link.style.opacity = "0.4";
+      link.style.pointerEvents = "none";
+    }
+
+    // Deep notes (structured)
+    renderDeepNotes(p);
+  }
+
+  function renderDeepNotes(p) {
+    const host = document.getElementById("deepNotesList");
+    host.innerHTML = "";
+    p.deep_notes = p.deep_notes || {};
+    DEEP_NOTE_FIELDS.forEach((f, i) => {
+      const val = p.deep_notes[f.key] || "";
+      const wrap = document.createElement("div");
+      wrap.className = "dnote" + (val.trim() ? " is-filled" : "");
+      wrap.innerHTML = `
+        <div class="dnote__head">
+          <span class="dnote__num">${String(i+1).padStart(2,"0")}</span>
+          <span class="dnote__dot"></span>
+          <span class="dnote__title">${f.label}</span>
+          <span class="dnote__chev">›</span>
+        </div>
+        <div class="dnote__body">
+          <textarea placeholder="${f.hint}"></textarea>
+        </div>
+      `;
+      const head = wrap.querySelector(".dnote__head");
+      const ta = wrap.querySelector("textarea");
+      ta.value = val;
+      head.addEventListener("click", () => {
+        wrap.classList.toggle("is-open");
+        if (wrap.classList.contains("is-open")) setTimeout(() => ta.focus(), 100);
+      });
+      ta.addEventListener("input", () => {
+        p.deep_notes[f.key] = ta.value;
+        wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
+        overrides[p.no] = overrides[p.no] || {};
+        overrides[p.no].deep_notes = p.deep_notes;
+        saveOverrides();
+        if (isUserPaper(p.no)) {
+          const idx = userPapers.findIndex(x => x.no === p.no);
+          if (idx >= 0) { userPapers[idx].deep_notes = p.deep_notes; saveUserPapers(); }
+        }
+        document.getElementById("notesSaved").textContent = "Deep notes 저장됨 · " + nowTime();
+      });
+      host.appendChild(wrap);
+    });
+  }
+
+  function nowTime() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+
+  /* ============================================================
+     EVENT BINDINGS
+     ============================================================ */
+  // Search
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    state.search = e.target.value;
+    renderTable();
+  });
+
+  // Status filter
+  document.querySelectorAll(".status-filter button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".status-filter button").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      state.status = btn.dataset.filter;
+      renderTable();
+    });
+  });
+
+  // Sort
+  document.querySelectorAll("th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (state.sortKey === key) {
+        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        state.sortKey = key;
+        state.sortDir = key === "date" ? "desc" : "asc";
+      }
+      renderTable();
+    });
+  });
+
+  // Panel close
+  document.getElementById("panelClose").addEventListener("click", closePanel);
+  backdrop.addEventListener("click", closePanel);
+
+  // Reset filters
+  document.getElementById("resetFilters").addEventListener("click", () => {
+    state.search = "";
+    state.status = "all";
+    state.activeTags.clear();
+    document.getElementById("searchInput").value = "";
+    document.querySelectorAll(".status-filter button").forEach(b => {
+      b.classList.toggle("is-active", b.dataset.filter === "all");
+    });
+    renderTags();
+    renderTable();
+  });
+
+  // Keyboard
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (state.selectedNo !== null) closePanel();
+    }
+    if (e.key === "/" && document.activeElement.tagName !== "INPUT"
+        && document.activeElement.tagName !== "TEXTAREA") {
+      e.preventDefault();
+      document.getElementById("searchInput").focus();
+    }
+  });
+
+  /* ============================================================
+     UTIL
+     ============================================================ */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    })[c]);
+  }
+
+  function renderAll() {
+    renderStats();
+    renderTags();
+    renderTable();
+  }
+
+  // Initial render
+  renderAll();
+
+  /* ============================================================
+     MODAL — Add / Edit
+     ============================================================ */
+  const modal = document.getElementById("modal");
+  const modalBackdrop = document.getElementById("modalBackdrop");
+  const form = document.getElementById("paperForm");
+  let editingNo = null;       // null = new
+  let formStatus = "reading";
+  let formProgress = 3;
+  let formDeepNotes = {};
+
+  function renderDeepNotesForm(values) {
+    const host = document.getElementById("fDeepNotes");
+    host.innerHTML = "";
+    DEEP_NOTE_FIELDS.forEach((f, i) => {
+      const row = document.createElement("div");
+      row.className = "dnote-form-row";
+      row.innerHTML = `
+        <div class="num">${String(i+1).padStart(2,"0")}</div>
+        <div class="stack">
+          <span>${f.label}</span>
+          <textarea data-key="${f.key}" placeholder="${f.hint}"></textarea>
+        </div>
+      `;
+      const ta = row.querySelector("textarea");
+      ta.value = values[f.key] || "";
+      ta.addEventListener("input", () => { formDeepNotes[f.key] = ta.value; });
+      host.appendChild(row);
+    });
+  }
+
+  function openModal(no = null) {
+    editingNo = no;
+    const isEdit = no !== null;
+    document.getElementById("modalTitle").textContent = isEdit ? "논문 수정" : "새 논문 추가";
+    document.getElementById("modalMark").textContent = isEdit ? `— EDIT · ${String(no).padStart(3,"0")} —` : "— NEW ENTRY —";
+    document.getElementById("modalDelete").hidden = !isEdit;
+
+    if (isEdit) {
+      const p = PAPERS.find(x => x.no === no);
+      document.getElementById("fTitle").value   = p.title || "";
+      document.getElementById("fSummary").value = p.summary || "";
+      document.getElementById("fAuthors").value = (p.authors||[]).join(", ");
+      document.getElementById("fTags").value    = (p.tags||[]).join(", ");
+      document.getElementById("fVenue").value   = p.venue || "";
+      document.getElementById("fYear").value    = p.year || "";
+      document.getElementById("fDate").value    = p.date_read || "";
+      document.getElementById("fUrl").value     = p.url || "";
+      document.getElementById("fNotes").value   = p.notes || "";
+      formStatus = p.status || "reading";
+      formProgress = p.progress || 0;
+      formDeepNotes = { ...(p.deep_notes || {}) };
+    } else {
+      form.reset();
+      formStatus = "reading";
+      formProgress = 3;
+      formDeepNotes = {};
+      const d = new Date();
+      document.getElementById("fYear").value = d.getFullYear();
+    }
+    syncSeg("fStatusSeg", formStatus);
+    syncSeg("fProgressSeg", String(formProgress));
+    renderDeepNotesForm(formDeepNotes);
+
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    modalBackdrop.classList.add("is-open");
+    setTimeout(() => document.getElementById("fTitle").focus(), 100);
+  }
+  function closeModal() {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    modalBackdrop.classList.remove("is-open");
+    editingNo = null;
+  }
+
+  function syncSeg(id, val) {
+    document.querySelectorAll(`#${id} button`).forEach(b => {
+      b.classList.toggle("is-active", b.dataset.val === String(val));
+    });
+  }
+  document.querySelectorAll("#fStatusSeg button").forEach(b => {
+    b.addEventListener("click", () => { formStatus = b.dataset.val; syncSeg("fStatusSeg", formStatus); });
+  });
+  document.querySelectorAll("#fProgressSeg button").forEach(b => {
+    b.addEventListener("click", () => { formProgress = +b.dataset.val; syncSeg("fProgressSeg", String(formProgress)); });
+  });
+
+  function parseList(s) {
+    return (s || "").split(",").map(x => x.trim()).filter(Boolean);
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = {
+      title:    document.getElementById("fTitle").value.trim(),
+      summary:  document.getElementById("fSummary").value.trim(),
+      authors:  parseList(document.getElementById("fAuthors").value),
+      tags:     parseList(document.getElementById("fTags").value).map(t => t.toLowerCase()),
+      venue:    document.getElementById("fVenue").value.trim(),
+      year:     +document.getElementById("fYear").value || new Date().getFullYear(),
+      date_read:document.getElementById("fDate").value.trim(),
+      url:      document.getElementById("fUrl").value.trim(),
+      notes:    document.getElementById("fNotes").value,
+      status:   formStatus,
+      progress: formProgress,
+      deep_notes: { ...formDeepNotes },
+    };
+    if (!data.title) {
+      document.getElementById("fTitle").focus();
+      return;
+    }
+
+    if (editingNo === null) {
+      // Create
+      const newPaper = { no: nextNo(), ...data };
+      PAPERS.push(newPaper);
+      userPapers.push(newPaper);
+      saveUserPapers();
+    } else {
+      // Update
+      const p = PAPERS.find(x => x.no === editingNo);
+      Object.assign(p, data);
+      if (isUserPaper(editingNo)) {
+        const idx = userPapers.findIndex(x => x.no === editingNo);
+        userPapers[idx] = { ...p };
+        saveUserPapers();
+      } else {
+        edits[editingNo] = { ...data };
+        saveEdits();
+      }
+      // Sync lightweight overrides too so they don't reapply stale values
+      overrides[editingNo] = {
+        status: data.status, notes: data.notes,
+        progress: data.progress, date_read: data.date_read,
+        deep_notes: data.deep_notes,
+      };
+      saveOverrides();
+    }
+    closeModal();
+    renderAll();
+    if (state.selectedNo !== null) {
+      const p = PAPERS.find(x => x.no === state.selectedNo);
+      if (p) hydratePanel(p);
+    }
+  });
+
+  document.getElementById("modalDelete").addEventListener("click", () => {
+    if (editingNo === null) return;
+    if (!confirm("이 논문을 목록에서 삭제할까요? 메모와 진행도도 함께 사라집니다.")) return;
+    const no = editingNo;
+    const idx = PAPERS.findIndex(x => x.no === no);
+    if (idx >= 0) PAPERS.splice(idx, 1);
+
+    if (isUserPaper(no)) {
+      userPapers = userPapers.filter(x => x.no !== no);
+      saveUserPapers();
+    } else {
+      deleted.add(no);
+      saveDeleted();
+    }
+    delete overrides[no]; saveOverrides();
+    delete edits[no];     saveEdits();
+
+    if (state.selectedNo === no) closePanel();
+    closeModal();
+    renderAll();
+  });
+
+  document.getElementById("addPaperBtn").addEventListener("click", () => openModal(null));
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", closeModal);
+  document.getElementById("panelEdit").addEventListener("click", () => {
+    if (state.selectedNo !== null) openModal(state.selectedNo);
+  });
+
+  // Esc closes modal first, then panel
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("is-open")) {
+      e.stopPropagation();
+      closeModal();
+    }
+  }, true);
+</script>
+
+</body>
+</html>
