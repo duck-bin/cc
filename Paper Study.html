@@ -474,6 +474,28 @@
   }
   .col-date.is-empty { color: var(--ink-4); }
 
+  .col-imp {
+    width: 82px;
+    padding-top: 16px !important;
+    white-space: nowrap;
+  }
+  .imp-cell {
+    display: inline-flex;
+    gap: 2px;
+    cursor: default;
+  }
+  .imp-cell span {
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--line-strong);
+    transition: color 0.1s;
+    line-height: 1;
+  }
+  .imp-cell span.is-on { color: var(--accent-ink); }
+  .imp-cell:hover span { color: var(--ink-4); }
+  .imp-cell:hover span.is-on { color: var(--accent); }
+
   /* ============================================================
      EMPTY STATE
      ============================================================ */
@@ -1513,6 +1535,7 @@ let PAPERS = [];
           <th>Tags</th>
           <th>Status</th>
           <th class="sortable" data-sort="date">Date Read<span class="sort-arrow">↑</span></th>
+          <th class="sortable" data-sort="importance">Imp.<span class="sort-arrow">↑</span></th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -1606,9 +1629,8 @@ let PAPERS = [];
       </div>
     </div>
     <div class="form-field">
-      <label>Progress</label>
-      <div class="seg" id="fProgressSeg">
-        <button type="button" data-val="0">0</button>
+      <label>중요도</label>
+      <div class="seg" id="fImportanceSeg">
         <button type="button" data-val="1">1</button>
         <button type="button" data-val="2">2</button>
         <button type="button" data-val="3" class="is-active">3</button>
@@ -1671,14 +1693,14 @@ let PAPERS = [];
     </section>
 
     <section class="field">
-      <p class="field__label">Reading Progress</p>
-      <div class="progress" id="panelProgress">
-        <button class="progress__dot" data-step="1" aria-label="step 1"></button>
-        <button class="progress__dot" data-step="2" aria-label="step 2"></button>
-        <button class="progress__dot" data-step="3" aria-label="step 3"></button>
-        <button class="progress__dot" data-step="4" aria-label="step 4"></button>
-        <button class="progress__dot" data-step="5" aria-label="step 5"></button>
-        <span class="progress__label" id="panelProgressLabel">—</span>
+      <p class="field__label">중요도</p>
+      <div class="progress" id="panelImportance">
+        <button class="progress__dot" data-step="1" aria-label="중요도 1"></button>
+        <button class="progress__dot" data-step="2" aria-label="중요도 2"></button>
+        <button class="progress__dot" data-step="3" aria-label="중요도 3"></button>
+        <button class="progress__dot" data-step="4" aria-label="중요도 4"></button>
+        <button class="progress__dot" data-step="5" aria-label="중요도 5"></button>
+        <span class="progress__label" id="panelImportanceLabel">—</span>
       </div>
     </section>
 
@@ -1872,10 +1894,9 @@ let PAPERS = [];
   /* ============================================================
      STATE
      ============================================================ */
-  const STATUS_ORDER   = ["reading", "read", "hold"];
-  const STATUS_LABEL   = { read: "읽음", reading: "읽는 중", hold: "보류" };
-  const STATUS_CLASS   = { read: "s-read", reading: "s-reading", hold: "s-hold" };
-  const PROGRESS_LABEL = ["—", "훑어봄", "초독 진행", "재독 중", "정독 완료", "마스터"];
+  const STATUS_ORDER = ["reading", "read", "hold"];
+  const STATUS_LABEL = { read: "읽음", reading: "읽는 중", hold: "보류" };
+  const STATUS_CLASS = { read: "s-read", reading: "s-reading", hold: "s-hold" };
 
   const DEEP_NOTE_FIELDS = [
     { key: "problem",  label: "Problem Definition (Formalized)",
@@ -1994,6 +2015,10 @@ let PAPERS = [];
         va = a.date_read || "0000.00.00";
         vb = b.date_read || "0000.00.00";
       }
+      else if (state.sortKey === "importance") {
+        va = a.importance ?? 3;
+        vb = b.importance ?? 3;
+      }
       if (va < vb) return -1*dir;
       if (va > vb) return  1*dir;
       return 0;
@@ -2014,6 +2039,11 @@ let PAPERS = [];
       const authorsLine = p.authors[0] + (p.authors.length > 1 ? ` +${p.authors.length-1}` : "");
       const venueLine = `${p.venue} · ${p.year}`;
       const tagsHtml = p.tags.map(t => `<span class="tag-mini">${t}</span>`).join("");
+      const imp = p.importance ?? 3;
+      const impHtml = Array.from({length: 5}, (_, i) =>
+        `<span data-imp-step="${i+1}" class="${i < imp ? "is-on" : ""}">` +
+        (i < imp ? "■" : "□") + `</span>`
+      ).join("");
 
       tr.innerHTML = `
         <td class="col-no">${String(p.no).padStart(3,"0")}</td>
@@ -2032,10 +2062,12 @@ let PAPERS = [];
           </button>
         </td>
         <td class="col-date ${p.date_read ? "" : "is-empty"}">${p.date_read || "—"}</td>
+        <td class="col-imp" data-imp-no="${p.no}"><div class="imp-cell">${impHtml}</div></td>
       `;
 
       tr.addEventListener("click", (e) => {
         if (e.target.closest("[data-status-toggle]")) return;
+        if (e.target.closest("[data-imp-no]")) return;
         openPanel(p.no);
       });
       tbody.appendChild(tr);
@@ -2047,6 +2079,23 @@ let PAPERS = [];
         e.stopPropagation();
         const no = +btn.dataset.statusToggle;
         cycleStatus(no);
+      });
+    });
+
+    // Importance cell clicks
+    tbody.querySelectorAll("[data-imp-no]").forEach(td => {
+      td.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const step = +e.target.dataset.impStep;
+        if (!step) return;
+        const no = +td.dataset.impNo;
+        const paper = PAPERS.find(x => x.no === no);
+        if (!paper) return;
+        const cur = paper.importance ?? 3;
+        paper.importance = (cur === step) ? Math.max(1, step - 1) : step;
+        scheduleSave("Update importance");
+        renderTable();
+        if (state.selectedNo === no) hydratePanel(paper);
       });
     });
 
@@ -2130,20 +2179,21 @@ let PAPERS = [];
       p.tags.map(t => `<span class="tag-mini">${t}</span>`).join(" ");
     document.getElementById("panelDateRead").textContent = p.date_read || "— 미독";
 
-    // progress
-    const dots = document.querySelectorAll("#panelProgress .progress__dot");
+    // importance
+    const imp = p.importance ?? 3;
+    const dots = document.querySelectorAll("#panelImportance .progress__dot");
     dots.forEach(d => {
       const step = +d.dataset.step;
-      d.classList.toggle("is-on", step <= (p.progress || 0));
+      d.classList.toggle("is-on", step <= imp);
       d.onclick = () => {
-        p.progress = (p.progress === step) ? step - 1 : step;
-        if (p.progress < 0) p.progress = 0;
-        scheduleSave("Update reading progress");
+        const cur = p.importance ?? 3;
+        p.importance = (cur === step) ? Math.max(1, step - 1) : step;
+        scheduleSave("Update importance");
         hydratePanel(p);
+        renderTable();
       };
     });
-    document.getElementById("panelProgressLabel").textContent =
-      `${p.progress || 0}/5 · ${PROGRESS_LABEL[p.progress] || "—"}`;
+    document.getElementById("panelImportanceLabel").textContent = `${imp} / 5`;
 
     // notes
     const notes = document.getElementById("panelNotes");
@@ -2239,7 +2289,7 @@ let PAPERS = [];
         state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
       } else {
         state.sortKey = key;
-        state.sortDir = key === "date" ? "desc" : "asc";
+        state.sortDir = (key === "date" || key === "importance") ? "desc" : "asc";
       }
       renderTable();
     });
@@ -2354,7 +2404,7 @@ let PAPERS = [];
   const form = document.getElementById("paperForm");
   let editingNo = null;       // null = new
   let formStatus = "reading";
-  let formProgress = 3;
+  let formImportance = 3;
   let formDeepNotes = {};
 
   function renderDeepNotesForm(values) {
@@ -2396,18 +2446,18 @@ let PAPERS = [];
       document.getElementById("fUrl").value     = p.url || "";
       document.getElementById("fNotes").value   = p.notes || "";
       formStatus = p.status || "reading";
-      formProgress = p.progress || 0;
+      formImportance = p.importance ?? 3;
       formDeepNotes = { ...(p.deep_notes || {}) };
     } else {
       form.reset();
       formStatus = "reading";
-      formProgress = 3;
+      formImportance = 3;
       formDeepNotes = {};
       const d = new Date();
       document.getElementById("fYear").value = d.getFullYear();
     }
     syncSeg("fStatusSeg", formStatus);
-    syncSeg("fProgressSeg", String(formProgress));
+    syncSeg("fImportanceSeg", String(formImportance));
     renderDeepNotesForm(formDeepNotes);
 
     modal.classList.toggle("modal--wide", viewMode === "modal");
@@ -2433,8 +2483,8 @@ let PAPERS = [];
   document.querySelectorAll("#fStatusSeg button").forEach(b => {
     b.addEventListener("click", () => { formStatus = b.dataset.val; syncSeg("fStatusSeg", formStatus); });
   });
-  document.querySelectorAll("#fProgressSeg button").forEach(b => {
-    b.addEventListener("click", () => { formProgress = +b.dataset.val; syncSeg("fProgressSeg", String(formProgress)); });
+  document.querySelectorAll("#fImportanceSeg button").forEach(b => {
+    b.addEventListener("click", () => { formImportance = +b.dataset.val; syncSeg("fImportanceSeg", String(formImportance)); });
   });
 
   function parseList(s) {
@@ -2453,8 +2503,8 @@ let PAPERS = [];
       date_read:document.getElementById("fDate").value.trim(),
       url:      document.getElementById("fUrl").value.trim(),
       notes:    document.getElementById("fNotes").value,
-      status:   formStatus,
-      progress: formProgress,
+      status:     formStatus,
+      importance: formImportance,
       deep_notes: { ...formDeepNotes },
     };
     if (!data.title) {
