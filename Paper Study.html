@@ -1352,6 +1352,29 @@
   .lock-btn.is-unlocked { color: var(--accent-ink); border-color: var(--accent); }
 
   /* ============================================================
+     DRAG HANDLE
+     ============================================================ */
+  .drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    color: var(--ink-4);
+    cursor: grab;
+    font-size: 13px;
+    line-height: 1;
+    user-select: none;
+    margin-right: 4px;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    vertical-align: middle;
+  }
+  tr:hover .drag-handle { opacity: 1; }
+  .drag-handle:active { cursor: grabbing; }
+  tr.is-dragging { opacity: 0.35; }
+  tr.drag-over td { box-shadow: inset 0 2px 0 var(--accent); }
+
+  /* ============================================================
      VIEW MODE TOGGLE BUTTON
      ============================================================ */
   .view-toggle {
@@ -1562,18 +1585,17 @@ let PAPERS = [];
   <span id="siText">저장 중…</span>
 </div>
 
-<!-- PASSWORD MODAL -->
-<div class="modal-backdrop" id="pwModalBackdrop"></div>
-<div class="token-modal" id="pwModal" role="dialog" aria-labelledby="pwModalTitle">
-  <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; Edit Mode</p>
-  <h2 id="pwModalTitle">수정 모드 잠금 해제</h2>
-  <p>수정 비밀번호를 입력하면 이 세션에서 논문을 추가·수정·삭제할 수 있습니다.</p>
+<!-- TOKEN MODAL -->
+<div class="modal-backdrop" id="tokenModalBackdrop"></div>
+<div class="token-modal" id="tokenModal" role="dialog" aria-labelledby="tokenModalTitle">
+  <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; GitHub Sync</p>
+  <h2 id="tokenModalTitle">쓰기 권한이 필요합니다</h2>
+  <p>논문 추가·수정·삭제는 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">duck-bin/cc</code> 레포에 직접 커밋합니다. <strong>repo</strong> 또는 <strong>contents:write</strong> 권한이 있는 Personal Access Token을 입력하세요. 토큰은 이 브라우저의 localStorage에만 저장되며 외부로 전송되지 않습니다.</p>
   <div class="token-input-row">
-    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off" spellcheck="false" />
-    <button class="btn btn--primary" id="pwConfirmBtn" style="white-space:nowrap;">확인</button>
-    <button class="btn" id="pwCancelBtn" style="white-space:nowrap;">취소</button>
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
+    <button class="btn btn--primary" id="tokenSaveBtn" style="white-space:nowrap;">연결</button>
+    <button class="btn" id="tokenCancelBtn" style="white-space:nowrap;">취소</button>
   </div>
-  <p class="hint" id="pwError" style="display:none; color:oklch(0.55 0.12 25);">비밀번호가 올바르지 않습니다.</p>
 </div>
 
 <!-- ADD/EDIT MODAL -->
@@ -1734,13 +1756,15 @@ let PAPERS = [];
   const GITHUB_REPO   = "cc";
   const GITHUB_BRANCH = "main";
   const GITHUB_FILE   = "papers.json";
-  const GITHUB_TOKEN  = "";   // ← GitHub Personal Access Token 입력
-  const EDIT_PASSWORD = "";   // ← 수정 비밀번호 입력
-  const VIEW_MODE_KEY   = "paper-study-view-mode";
+  const TOKEN_LS_KEY  = "paper-study-gh-token";
+  const VIEW_MODE_KEY = "paper-study-view-mode";
 
-  let viewMode     = localStorage.getItem(VIEW_MODE_KEY) || "panel"; // "panel" | "modal"
-  let ghFileSha    = null;
-  let editUnlocked = false;
+  let ghToken  = localStorage.getItem(TOKEN_LS_KEY) || "";
+  let viewMode = localStorage.getItem(VIEW_MODE_KEY) || "panel"; // "panel" | "modal"
+  let ghFileSha = null;
+
+  function setToken(t)  { ghToken = t; localStorage.setItem(TOKEN_LS_KEY, t); }
+  function clearToken() { ghToken = ""; localStorage.removeItem(TOKEN_LS_KEY); }
 
   /* ============================================================
      LOADING / SAVE INDICATOR
@@ -1774,7 +1798,7 @@ let PAPERS = [];
   function ghHeaders() {
     return {
       "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${GITHUB_TOKEN}`,
+      "Authorization": `Bearer ${ghToken}`,
       "X-GitHub-Api-Version": "2022-11-28",
     };
   }
@@ -1850,17 +1874,17 @@ let PAPERS = [];
 
   let pendingWriteAction = null;
 
-  function ensureEditAuth(action) {
-    if (editUnlocked) { action(); return; }
+  function ensureToken(action) {
+    if (ghToken) { action(); return; }
     pendingWriteAction = action;
-    openPwModal();
+    openTokenModal();
   }
 
   let saveDebounceTimer = null;
   function scheduleSave(reason = "Update papers.json") {
     clearTimeout(saveDebounceTimer);
     saveDebounceTimer = setTimeout(() => {
-      ensureEditAuth(async () => {
+      ensureToken(async () => {
         showSave("저장 중…", "saving");
         try {
           await writePapersJson([...PAPERS], reason);
@@ -1873,7 +1897,7 @@ let PAPERS = [];
   }
 
   function saveNow(reason = "Update papers.json") {
-    ensureEditAuth(async () => {
+    ensureToken(async () => {
       showSave("저장 중…", "saving");
       try {
         await writePapersJson([...PAPERS], reason);
@@ -1911,6 +1935,8 @@ let PAPERS = [];
   function nextNo() {
     return PAPERS.reduce((m, p) => Math.max(m, p.no), 0) + 1;
   }
+
+  let dragSrcNo = null;
 
   let state = {
     search: "",
@@ -1999,6 +2025,7 @@ let PAPERS = [];
   }
 
   function getSorted(rows) {
+    if (state.sortKey === "custom") return [...rows];
     const dir = state.sortDir === "asc" ? 1 : -1;
     return [...rows].sort((a,b) => {
       let va, vb;
@@ -2039,7 +2066,7 @@ let PAPERS = [];
       ).join("");
 
       tr.innerHTML = `
-        <td class="col-no">${String(p.no).padStart(3,"0")}</td>
+        <td class="col-no"><span class="drag-handle" title="드래그하여 순서 변경">⠿</span>${String(p.no).padStart(3,"0")}</td>
         <td class="col-paper">
           <p class="paper__title">${escapeHtml(p.title)}</p>
           <p class="paper__summary">${escapeHtml(p.summary)}</p>
@@ -2061,8 +2088,46 @@ let PAPERS = [];
       tr.addEventListener("click", (e) => {
         if (e.target.closest("[data-status-toggle]")) return;
         if (e.target.closest("[data-imp-no]")) return;
+        if (e.target.closest(".drag-handle")) return;
         openPanel(p.no);
       });
+
+      // Drag reorder
+      const handle = tr.querySelector(".drag-handle");
+      handle.addEventListener("mousedown", () => tr.setAttribute("draggable", "true"));
+      tr.addEventListener("dragstart", (e) => {
+        dragSrcNo = p.no;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", p.no);
+        setTimeout(() => tr.classList.add("is-dragging"), 0);
+      });
+      tr.addEventListener("dragend", () => {
+        tr.removeAttribute("draggable");
+        tr.classList.remove("is-dragging", "drag-over");
+        dragSrcNo = null;
+      });
+      tr.addEventListener("dragover", (e) => {
+        if (dragSrcNo === null || dragSrcNo === p.no) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        tbody.querySelectorAll("tr.drag-over").forEach(r => r.classList.remove("drag-over"));
+        tr.classList.add("drag-over");
+      });
+      tr.addEventListener("drop", (e) => {
+        e.preventDefault();
+        tr.classList.remove("drag-over");
+        if (dragSrcNo === null || dragSrcNo === p.no) return;
+        const srcIdx = PAPERS.findIndex(x => x.no === dragSrcNo);
+        const dstIdx = PAPERS.findIndex(x => x.no === p.no);
+        if (srcIdx < 0 || dstIdx < 0) return;
+        const [moved] = PAPERS.splice(srcIdx, 1);
+        PAPERS.splice(dstIdx, 0, moved);
+        state.sortKey = "custom";
+        state.sortDir = "asc";
+        renderAll();
+        scheduleSave("Reorder papers");
+      });
+
       tbody.appendChild(tr);
     });
 
@@ -2082,15 +2147,13 @@ let PAPERS = [];
         const step = +e.target.dataset.impStep;
         if (!step) return;
         const no = +td.dataset.impNo;
-        ensureEditAuth(() => {
-          const paper = PAPERS.find(x => x.no === no);
-          if (!paper) return;
-          const cur = paper.importance ?? 3;
-          paper.importance = (cur === step) ? Math.max(1, step - 1) : step;
-          scheduleSave("Update importance");
-          renderTable();
-          if (state.selectedNo === no) hydratePanel(paper);
-        });
+        const paper = PAPERS.find(x => x.no === no);
+        if (!paper) return;
+        const cur = paper.importance ?? 3;
+        paper.importance = (cur === step) ? Math.max(1, step - 1) : step;
+        scheduleSave("Update importance");
+        renderTable();
+        if (state.selectedNo === no) hydratePanel(paper);
       });
     });
 
@@ -2107,7 +2170,6 @@ let PAPERS = [];
      STATUS CYCLE
      ============================================================ */
   function cycleStatus(no) {
-    if (!editUnlocked) { ensureEditAuth(() => cycleStatus(no)); return; }
     const p = PAPERS.find(x => x.no === no);
     if (!p) return;
     const idx = STATUS_ORDER.indexOf(p.status);
@@ -2182,13 +2244,11 @@ let PAPERS = [];
       const step = +d.dataset.step;
       d.classList.toggle("is-on", step <= imp);
       d.onclick = () => {
-        ensureEditAuth(() => {
-          const cur = p.importance ?? 3;
-          p.importance = (cur === step) ? Math.max(1, step - 1) : step;
-          scheduleSave("Update importance");
-          hydratePanel(p);
-          renderTable();
-        });
+        const cur = p.importance ?? 3;
+        p.importance = (cur === step) ? Math.max(1, step - 1) : step;
+        scheduleSave("Update importance");
+        hydratePanel(p);
+        renderTable();
       };
     });
     document.getElementById("panelImportanceLabel").textContent = `${imp} / 5`;
@@ -2199,11 +2259,9 @@ let PAPERS = [];
     document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
     document.getElementById("notesSaved").textContent = "자동 저장";
     notes.oninput = () => {
-      ensureEditAuth(() => {
-        p.notes = notes.value;
-        document.getElementById("notesCount").textContent = notes.value.length + " chars";
-        scheduleSave("Update notes");
-      });
+      p.notes = notes.value;
+      document.getElementById("notesCount").textContent = notes.value.length + " chars";
+      scheduleSave("Update notes");
     };
 
     // link
@@ -2249,11 +2307,9 @@ let PAPERS = [];
         if (wrap.classList.contains("is-open")) setTimeout(() => ta.focus(), 100);
       });
       ta.addEventListener("input", () => {
-        ensureEditAuth(() => {
-          p.deep_notes[f.key] = ta.value;
-          wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
-          scheduleSave("Update deep notes");
-        });
+        p.deep_notes[f.key] = ta.value;
+        wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
+        scheduleSave("Update deep notes");
       });
       host.appendChild(wrap);
     });
@@ -2342,51 +2398,45 @@ let PAPERS = [];
   }
 
   /* ============================================================
-     PASSWORD MODAL
+     TOKEN MODAL
      ============================================================ */
-  const pwModal         = document.getElementById("pwModal");
-  const pwModalBackdrop = document.getElementById("pwModalBackdrop");
+  const tokenModal         = document.getElementById("tokenModal");
+  const tokenModalBackdrop = document.getElementById("tokenModalBackdrop");
 
-  function openPwModal() {
-    pwModal.classList.add("is-open");
-    pwModalBackdrop.classList.add("is-open");
-    document.getElementById("pwError").style.display = "none";
-    document.getElementById("pwInput").value = "";
-    setTimeout(() => document.getElementById("pwInput").focus(), 120);
+  function openTokenModal() {
+    tokenModal.classList.add("is-open");
+    tokenModalBackdrop.classList.add("is-open");
+    setTimeout(() => document.getElementById("tokenInput").focus(), 120);
   }
-  function closePwModal() {
-    pwModal.classList.remove("is-open");
-    pwModalBackdrop.classList.remove("is-open");
-    document.getElementById("pwInput").value = "";
+  function closeTokenModal() {
+    tokenModal.classList.remove("is-open");
+    tokenModalBackdrop.classList.remove("is-open");
     pendingWriteAction = null;
   }
 
-  document.getElementById("pwConfirmBtn").addEventListener("click", async () => {
-    const val = document.getElementById("pwInput").value;
-    if (val !== EDIT_PASSWORD) {
-      document.getElementById("pwError").style.display = "";
-      document.getElementById("pwInput").select();
-      return;
-    }
-    editUnlocked = true;
+  document.getElementById("tokenSaveBtn").addEventListener("click", async () => {
+    const t = document.getElementById("tokenInput").value.trim();
+    if (!t) { document.getElementById("tokenInput").focus(); return; }
+    setToken(t);
+    document.getElementById("tokenInput").value = "";
     updateLockBtn();
     const action = pendingWriteAction;
-    closePwModal();
+    closeTokenModal();
     if (action) await action();
   });
 
-  document.getElementById("pwCancelBtn").addEventListener("click", closePwModal);
-  pwModalBackdrop.addEventListener("click", closePwModal);
+  document.getElementById("tokenCancelBtn").addEventListener("click", closeTokenModal);
+  tokenModalBackdrop.addEventListener("click", closeTokenModal);
 
-  document.getElementById("pwInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") document.getElementById("pwConfirmBtn").click();
+  document.getElementById("tokenInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("tokenSaveBtn").click();
   });
 
-  // Esc closes password modal — stopImmediatePropagation so no other keydown handler fires
+  // Esc closes token modal — stopImmediatePropagation so no other keydown handler fires
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && pwModal.classList.contains("is-open")) {
+    if (e.key === "Escape" && tokenModal.classList.contains("is-open")) {
       e.stopImmediatePropagation();
-      closePwModal();
+      closeTokenModal();
     }
   }, true);
 
@@ -2398,17 +2448,20 @@ let PAPERS = [];
 
   function updateLockBtn() {
     const btn = document.getElementById("lockBtn");
-    btn.querySelector("svg").innerHTML = editUnlocked ? UNLOCK_ICON : LOCK_ICON;
-    btn.title = editUnlocked ? "편집 모드 잠금" : "편집 모드 잠금 해제";
-    btn.classList.toggle("is-unlocked", editUnlocked);
+    btn.querySelector("svg").innerHTML = ghToken ? UNLOCK_ICON : LOCK_ICON;
+    btn.title = ghToken ? "GitHub 토큰 초기화" : "GitHub 토큰 연결";
+    btn.classList.toggle("is-unlocked", !!ghToken);
   }
 
   document.getElementById("lockBtn").addEventListener("click", () => {
-    if (editUnlocked) {
-      editUnlocked = false;
+    if (ghToken) {
+      if (!confirm("GitHub 토큰을 초기화할까요?")) return;
+      clearToken();
+      ghFileSha = null;
       updateLockBtn();
+      showSave("토큰이 초기화되었습니다", "saved");
     } else {
-      openPwModal();
+      openTokenModal();
     }
   });
 
@@ -2555,7 +2608,6 @@ let PAPERS = [];
 
   document.getElementById("modalDelete").addEventListener("click", () => {
     if (editingNo === null) return;
-    if (!editUnlocked) { ensureEditAuth(() => {}); return; }
     if (!confirm("이 논문을 목록에서 삭제할까요? 메모와 진행도도 함께 사라집니다.")) return;
     const no = editingNo;
     const idx = PAPERS.findIndex(x => x.no === no);
@@ -2566,11 +2618,11 @@ let PAPERS = [];
     saveNow("Delete paper");
   });
 
-  document.getElementById("addPaperBtn").addEventListener("click", () => ensureEditAuth(() => openModal(null)));
+  document.getElementById("addPaperBtn").addEventListener("click", () => openModal(null));
   document.getElementById("modalCancel").addEventListener("click", closeModal);
   modalBackdrop.addEventListener("click", closeModal);
   document.getElementById("panelEdit").addEventListener("click", () => {
-    if (state.selectedNo !== null) ensureEditAuth(() => openModal(state.selectedNo));
+    if (state.selectedNo !== null) openModal(state.selectedNo);
   });
 
   // Esc closes modal first, then panel
