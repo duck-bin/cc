@@ -28,5 +28,20 @@
     "status": "read",
     "progress": 2,
     "deep_notes": {}
+  },
+  {
+    "no": 5,
+    "title": "Reimagining surgery in a world powered by intelligence, connectivity, and code",
+    "summary": "",
+    "authors": [],
+    "tags": [],
+    "venue": "npj Digit. Surg.",
+    "year": 2026,
+    "date_read": "",
+    "url": "https://www.nature.com/articles/s44484-025-00001-3",
+    "notes": "",
+    "status": "hold",
+    "importance": 3,
+    "deep_notes": {}
   }
 ]
