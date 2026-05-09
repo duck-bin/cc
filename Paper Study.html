@@ -1335,19 +1335,21 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
-  .token-btn {
+  .lock-btn {
     background: none;
     border: 1px solid var(--line);
     color: var(--ink-4);
-    padding: 5px 10px;
+    width: 30px;
+    height: 30px;
     border-radius: 3px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.12s ease;
+    flex-shrink: 0;
   }
-  .token-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+  .lock-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+  .lock-btn.is-unlocked { color: var(--accent-ink); border-color: var(--accent); }
 
   /* ============================================================
      VIEW MODE TOGGLE BUTTON
@@ -1465,11 +1467,8 @@ let PAPERS = [];
       <h1 class="brand__title"><strong>Paper Study</strong> &nbsp;·&nbsp; reading log</h1>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="brand__meta" id="lastUpdated">—</span>
-        <button class="token-btn" id="tokenResetBtn" title="GitHub 토큰 재설정">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-1px;margin-right:4px;">
-            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
-          </svg>
-          Token
+        <button class="lock-btn" id="lockBtn" title="편집 모드 잠금 해제">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"></svg>
         </button>
         <button class="view-toggle" id="viewToggleBtn" title="보기 모드 전환">
           <svg id="viewToggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
@@ -1563,21 +1562,18 @@ let PAPERS = [];
   <span id="siText">저장 중…</span>
 </div>
 
-<!-- TOKEN MODAL -->
-<div class="modal-backdrop" id="tokenModalBackdrop"></div>
-<div class="token-modal" id="tokenModal" role="dialog" aria-labelledby="tokenModalTitle">
-  <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; GitHub Sync</p>
-  <h2 id="tokenModalTitle">쓰기 권한이 필요합니다</h2>
-  <p>논문 추가·수정·삭제는 <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-sunken);padding:1px 5px;border-radius:2px;">duck-bin/cc</code> 레포에 직접 커밋합니다. <strong>repo</strong> 또는 <strong>contents:write</strong> 권한이 있는 Personal Access Token을 입력하세요. 토큰은 이 브라우저의 localStorage에만 저장되며 외부로 전송되지 않습니다. 읽기 전용으로만 사용한다면 닫아도 됩니다.</p>
+<!-- PASSWORD MODAL -->
+<div class="modal-backdrop" id="pwModalBackdrop"></div>
+<div class="token-modal" id="pwModal" role="dialog" aria-labelledby="pwModalTitle">
+  <p class="token-modal__logo">Paper Study &nbsp;·&nbsp; Edit Mode</p>
+  <h2 id="pwModalTitle">수정 모드 잠금 해제</h2>
+  <p>수정 비밀번호를 입력하면 이 세션에서 논문을 추가·수정·삭제할 수 있습니다.</p>
   <div class="token-input-row">
-    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
-    <button class="btn btn--primary" id="tokenSaveBtn" style="white-space:nowrap;">연결</button>
-    <button class="btn" id="tokenCancelBtn" style="white-space:nowrap;">취소</button>
+    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off" spellcheck="false" />
+    <button class="btn btn--primary" id="pwConfirmBtn" style="white-space:nowrap;">확인</button>
+    <button class="btn" id="pwCancelBtn" style="white-space:nowrap;">취소</button>
   </div>
-  <p class="hint">
-    토큰 생성: <a href="https://github.com/settings/tokens/new?scopes=repo&description=Paper+Study" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Personal access tokens</a><br>
-    필요 권한: <strong>repo</strong> (또는 <strong>contents:write</strong>)
-  </p>
+  <p class="hint" id="pwError" style="display:none; color:oklch(0.55 0.12 25);">비밀번호가 올바르지 않습니다.</p>
 </div>
 
 <!-- ADD/EDIT MODAL -->
@@ -1738,15 +1734,13 @@ let PAPERS = [];
   const GITHUB_REPO   = "cc";
   const GITHUB_BRANCH = "main";
   const GITHUB_FILE   = "papers.json";
-  const TOKEN_LS_KEY    = "paper-study-gh-token";
+  const GITHUB_TOKEN  = "";   // ← GitHub Personal Access Token 입력
+  const EDIT_PASSWORD = "";   // ← 수정 비밀번호 입력
   const VIEW_MODE_KEY   = "paper-study-view-mode";
 
-  let ghToken   = localStorage.getItem(TOKEN_LS_KEY) || "";
-  let viewMode  = localStorage.getItem(VIEW_MODE_KEY) || "panel"; // "panel" | "modal"
-  let ghFileSha = null;
-
-  function setToken(t)  { ghToken = t; localStorage.setItem(TOKEN_LS_KEY, t); }
-  function clearToken() { ghToken = ""; localStorage.removeItem(TOKEN_LS_KEY); }
+  let viewMode     = localStorage.getItem(VIEW_MODE_KEY) || "panel"; // "panel" | "modal"
+  let ghFileSha    = null;
+  let editUnlocked = false;
 
   /* ============================================================
      LOADING / SAVE INDICATOR
@@ -1780,7 +1774,7 @@ let PAPERS = [];
   function ghHeaders() {
     return {
       "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${ghToken}`,
+      "Authorization": `Bearer ${GITHUB_TOKEN}`,
       "X-GitHub-Api-Version": "2022-11-28",
     };
   }
@@ -1854,20 +1848,19 @@ let PAPERS = [];
       c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
   }
 
-  // Pending write action — set when a save is attempted without a token
   let pendingWriteAction = null;
 
-  function ensureToken(action) {
-    if (ghToken) { action(); return; }
+  function ensureEditAuth(action) {
+    if (editUnlocked) { action(); return; }
     pendingWriteAction = action;
-    openTokenModal();
+    openPwModal();
   }
 
   let saveDebounceTimer = null;
   function scheduleSave(reason = "Update papers.json") {
     clearTimeout(saveDebounceTimer);
     saveDebounceTimer = setTimeout(() => {
-      ensureToken(async () => {
+      ensureEditAuth(async () => {
         showSave("저장 중…", "saving");
         try {
           await writePapersJson([...PAPERS], reason);
@@ -1880,7 +1873,7 @@ let PAPERS = [];
   }
 
   function saveNow(reason = "Update papers.json") {
-    ensureToken(async () => {
+    ensureEditAuth(async () => {
       showSave("저장 중…", "saving");
       try {
         await writePapersJson([...PAPERS], reason);
@@ -2089,13 +2082,15 @@ let PAPERS = [];
         const step = +e.target.dataset.impStep;
         if (!step) return;
         const no = +td.dataset.impNo;
-        const paper = PAPERS.find(x => x.no === no);
-        if (!paper) return;
-        const cur = paper.importance ?? 3;
-        paper.importance = (cur === step) ? Math.max(1, step - 1) : step;
-        scheduleSave("Update importance");
-        renderTable();
-        if (state.selectedNo === no) hydratePanel(paper);
+        ensureEditAuth(() => {
+          const paper = PAPERS.find(x => x.no === no);
+          if (!paper) return;
+          const cur = paper.importance ?? 3;
+          paper.importance = (cur === step) ? Math.max(1, step - 1) : step;
+          scheduleSave("Update importance");
+          renderTable();
+          if (state.selectedNo === no) hydratePanel(paper);
+        });
       });
     });
 
@@ -2112,6 +2107,7 @@ let PAPERS = [];
      STATUS CYCLE
      ============================================================ */
   function cycleStatus(no) {
+    if (!editUnlocked) { ensureEditAuth(() => cycleStatus(no)); return; }
     const p = PAPERS.find(x => x.no === no);
     if (!p) return;
     const idx = STATUS_ORDER.indexOf(p.status);
@@ -2186,11 +2182,13 @@ let PAPERS = [];
       const step = +d.dataset.step;
       d.classList.toggle("is-on", step <= imp);
       d.onclick = () => {
-        const cur = p.importance ?? 3;
-        p.importance = (cur === step) ? Math.max(1, step - 1) : step;
-        scheduleSave("Update importance");
-        hydratePanel(p);
-        renderTable();
+        ensureEditAuth(() => {
+          const cur = p.importance ?? 3;
+          p.importance = (cur === step) ? Math.max(1, step - 1) : step;
+          scheduleSave("Update importance");
+          hydratePanel(p);
+          renderTable();
+        });
       };
     });
     document.getElementById("panelImportanceLabel").textContent = `${imp} / 5`;
@@ -2201,9 +2199,11 @@ let PAPERS = [];
     document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
     document.getElementById("notesSaved").textContent = "자동 저장";
     notes.oninput = () => {
-      p.notes = notes.value;
-      document.getElementById("notesCount").textContent = notes.value.length + " chars";
-      scheduleSave("Update notes");
+      ensureEditAuth(() => {
+        p.notes = notes.value;
+        document.getElementById("notesCount").textContent = notes.value.length + " chars";
+        scheduleSave("Update notes");
+      });
     };
 
     // link
@@ -2249,9 +2249,11 @@ let PAPERS = [];
         if (wrap.classList.contains("is-open")) setTimeout(() => ta.focus(), 100);
       });
       ta.addEventListener("input", () => {
-        p.deep_notes[f.key] = ta.value;
-        wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
-        scheduleSave("Update deep notes");
+        ensureEditAuth(() => {
+          p.deep_notes[f.key] = ta.value;
+          wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
+          scheduleSave("Update deep notes");
+        });
       });
       host.appendChild(wrap);
     });
@@ -2340,53 +2342,77 @@ let PAPERS = [];
   }
 
   /* ============================================================
-     TOKEN MODAL
+     PASSWORD MODAL
      ============================================================ */
-  const tokenModal        = document.getElementById("tokenModal");
-  const tokenModalBackdrop = document.getElementById("tokenModalBackdrop");
+  const pwModal         = document.getElementById("pwModal");
+  const pwModalBackdrop = document.getElementById("pwModalBackdrop");
 
-  function openTokenModal() {
-    tokenModal.classList.add("is-open");
-    tokenModalBackdrop.classList.add("is-open");
-    setTimeout(() => document.getElementById("tokenInput").focus(), 120);
+  function openPwModal() {
+    pwModal.classList.add("is-open");
+    pwModalBackdrop.classList.add("is-open");
+    document.getElementById("pwError").style.display = "none";
+    document.getElementById("pwInput").value = "";
+    setTimeout(() => document.getElementById("pwInput").focus(), 120);
   }
-  function closeTokenModal() {
-    tokenModal.classList.remove("is-open");
-    tokenModalBackdrop.classList.remove("is-open");
+  function closePwModal() {
+    pwModal.classList.remove("is-open");
+    pwModalBackdrop.classList.remove("is-open");
+    document.getElementById("pwInput").value = "";
     pendingWriteAction = null;
   }
 
-  document.getElementById("tokenSaveBtn").addEventListener("click", async () => {
-    const t = document.getElementById("tokenInput").value.trim();
-    if (!t) { document.getElementById("tokenInput").focus(); return; }
-    setToken(t);
-    document.getElementById("tokenInput").value = "";
+  document.getElementById("pwConfirmBtn").addEventListener("click", async () => {
+    const val = document.getElementById("pwInput").value;
+    if (val !== EDIT_PASSWORD) {
+      document.getElementById("pwError").style.display = "";
+      document.getElementById("pwInput").select();
+      return;
+    }
+    editUnlocked = true;
+    updateLockBtn();
     const action = pendingWriteAction;
-    closeTokenModal();
+    closePwModal();
     if (action) await action();
   });
 
-  document.getElementById("tokenCancelBtn").addEventListener("click", closeTokenModal);
-  tokenModalBackdrop.addEventListener("click", closeTokenModal);
+  document.getElementById("pwCancelBtn").addEventListener("click", closePwModal);
+  pwModalBackdrop.addEventListener("click", closePwModal);
 
-  document.getElementById("tokenInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") document.getElementById("tokenSaveBtn").click();
+  document.getElementById("pwInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("pwConfirmBtn").click();
   });
 
-  document.getElementById("tokenResetBtn").addEventListener("click", () => {
-    if (!confirm("GitHub 토큰을 초기화할까요?")) return;
-    clearToken();
-    ghFileSha = null;
-    showSave("토큰이 초기화되었습니다", "saved");
-  });
-
-  // Esc closes token modal — stopImmediatePropagation so no other keydown handler fires
+  // Esc closes password modal — stopImmediatePropagation so no other keydown handler fires
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && tokenModal.classList.contains("is-open")) {
+    if (e.key === "Escape" && pwModal.classList.contains("is-open")) {
       e.stopImmediatePropagation();
-      closeTokenModal();
+      closePwModal();
     }
   }, true);
+
+  /* ============================================================
+     LOCK BUTTON
+     ============================================================ */
+  const LOCK_ICON   = `<rect x="5" y="11" width="14" height="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>`;
+  const UNLOCK_ICON = `<rect x="5" y="11" width="14" height="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.74-.37"/>`;
+
+  function updateLockBtn() {
+    const btn = document.getElementById("lockBtn");
+    btn.querySelector("svg").innerHTML = editUnlocked ? UNLOCK_ICON : LOCK_ICON;
+    btn.title = editUnlocked ? "편집 모드 잠금" : "편집 모드 잠금 해제";
+    btn.classList.toggle("is-unlocked", editUnlocked);
+  }
+
+  document.getElementById("lockBtn").addEventListener("click", () => {
+    if (editUnlocked) {
+      editUnlocked = false;
+      updateLockBtn();
+    } else {
+      openPwModal();
+    }
+  });
+
+  updateLockBtn();
 
   /* ============================================================
      INIT
@@ -2529,6 +2555,7 @@ let PAPERS = [];
 
   document.getElementById("modalDelete").addEventListener("click", () => {
     if (editingNo === null) return;
+    if (!editUnlocked) { ensureEditAuth(() => {}); return; }
     if (!confirm("이 논문을 목록에서 삭제할까요? 메모와 진행도도 함께 사라집니다.")) return;
     const no = editingNo;
     const idx = PAPERS.findIndex(x => x.no === no);
@@ -2539,11 +2566,11 @@ let PAPERS = [];
     saveNow("Delete paper");
   });
 
-  document.getElementById("addPaperBtn").addEventListener("click", () => openModal(null));
+  document.getElementById("addPaperBtn").addEventListener("click", () => ensureEditAuth(() => openModal(null)));
   document.getElementById("modalCancel").addEventListener("click", closeModal);
   modalBackdrop.addEventListener("click", closeModal);
   document.getElementById("panelEdit").addEventListener("click", () => {
-    if (state.selectedNo !== null) openModal(state.selectedNo);
+    if (state.selectedNo !== null) ensureEditAuth(() => openModal(state.selectedNo));
   });
 
   // Esc closes modal first, then panel
