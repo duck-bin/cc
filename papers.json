@@ -43,5 +43,22 @@
     "status": "reading",
     "importance": 3,
     "deep_notes": {}
+  },
+  {
+    "no": 6,
+    "title": "Achieving more human brain-like vision via human EEG representational alignment",
+    "summary": "",
+    "authors": [],
+    "tags": [],
+    "venue": "",
+    "year": 2026,
+    "date_read": "",
+    "url": "https://www.nature.com/articles/s42003-026-09685-w",
+    "notes": "",
+    "status": "reading",
+    "importance": 3,
+    "deep_notes": {
+      "problem": ""
+    }
   }
 ]
