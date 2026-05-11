@@ -76,5 +76,20 @@
     "status": "hold",
     "importance": 3,
     "deep_notes": {}
+  },
+  {
+    "no": 8,
+    "title": "EndoNet: A Deep Architecture for Recognition Tasks on Laparoscopic Videos",
+    "summary": "",
+    "authors": [],
+    "tags": [],
+    "venue": "",
+    "year": 2026,
+    "date_read": "",
+    "url": "https://arxiv.org/abs/1602.03012",
+    "notes": "",
+    "status": "reading",
+    "importance": 3,
+    "deep_notes": {}
   }
 ]
