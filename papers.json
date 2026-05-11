@@ -40,7 +40,7 @@
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s41597-023-02073-7",
     "notes": "",
-    "status": "read",
+    "status": "hold",
     "importance": 3,
     "deep_notes": {}
   },
@@ -52,10 +52,10 @@
     "tags": [],
     "venue": "",
     "year": 2026,
-    "date_read": "",
+    "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
     "notes": "",
-    "status": "reading",
+    "status": "hold",
     "importance": 3,
     "deep_notes": {
       "problem": ""
@@ -69,10 +69,10 @@
     "tags": [],
     "venue": "",
     "year": 2026,
-    "date_read": "",
+    "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s41746-025-02227-4",
     "notes": "",
-    "status": "reading",
+    "status": "hold",
     "importance": 3,
     "deep_notes": {}
   }
