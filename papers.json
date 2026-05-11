@@ -58,7 +58,8 @@
     "status": "hold",
     "importance": 3,
     "deep_notes": {
-      "problem": ""
+      "problem": "",
+      "takeaway": ""
     }
   },
   {
