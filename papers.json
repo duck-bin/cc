@@ -40,7 +40,7 @@
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s41597-023-02073-7",
     "notes": "",
-    "status": "reading",
+    "status": "hold",
     "importance": 3,
     "deep_notes": {}
   },
@@ -55,7 +55,7 @@
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
     "notes": "신경망과 인간 신경 표현과의 간극을 좁히는 것.\nss",
-    "status": "hold",
+    "status": "reading",
     "importance": 3,
     "deep_notes": {
       "problem": "",
