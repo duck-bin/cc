@@ -1747,7 +1747,8 @@ let PAPERS = [];
     </div>
     <div class="form-field col-span-2">
       <label for="fNotes">Notes</label>
-      <textarea id="fNotes" placeholder="자유 메모"></textarea>
+      <textarea id="fNotes" placeholder="자유 메모 · 이미지는 Ctrl+V로 붙여넣기"></textarea>
+      <div class="img-gallery" id="formImgGallery" style="margin-top:8px;"></div>
     </div>
     <div class="deep-notes-form">
       <label>Deep Notes — 구조화 메모</label>
@@ -2434,26 +2435,73 @@ let PAPERS = [];
     });
   }
 
-  // Global paste handler — captures clipboard images when panel is open
+  function renderFormImages() {
+    const gallery = document.getElementById("formImgGallery");
+    if (!gallery) return;
+    gallery.innerHTML = "";
+    formImages.forEach((src, idx) => {
+      const thumb = document.createElement("div");
+      thumb.className = "img-thumb";
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = `이미지 ${idx + 1}`;
+      const del = document.createElement("button");
+      del.className = "img-del";
+      del.title = "삭제";
+      del.textContent = "×";
+      del.type = "button";
+      thumb.appendChild(img);
+      thumb.appendChild(del);
+      img.addEventListener("click", () => openImgOverlay(src));
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        formImages.splice(idx, 1);
+        renderFormImages();
+      });
+      gallery.appendChild(thumb);
+    });
+  }
+
+  // Global paste handler — captures clipboard images in panel or form notes
   document.addEventListener("paste", async (e) => {
-    if (state.selectedNo === null) return;
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     const items = Array.from(e.clipboardData.items);
     const imageItem = items.find(item => item.type.startsWith("image/"));
     if (!imageItem) return;
-    e.preventDefault();
-    const blob = imageItem.getAsFile();
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const paper = PAPERS.find(x => x.no === state.selectedNo);
-      if (!paper) return;
-      if (!paper.images) paper.images = [];
-      const compressed = await compressImage(ev.target.result);
-      paper.images.push(compressed);
-      scheduleSave("Add image");
-      renderPanelImages(paper);
-    };
-    reader.readAsDataURL(blob);
+
+    const inPanelNotes = e.target.id === "panelNotes";
+    const inFormNotes  = e.target.id === "fNotes";
+    const inOtherInput = (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+                         && !inPanelNotes && !inFormNotes;
+    if (inOtherInput) return;
+
+    // Form (add/edit modal) context
+    if (modal.classList.contains("is-open") && (inFormNotes || !e.target.closest("input, textarea"))) {
+      e.preventDefault();
+      const blob = imageItem.getAsFile();
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        formImages.push(await compressImage(ev.target.result));
+        renderFormImages();
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+
+    // Panel context
+    if (state.selectedNo !== null && !modal.classList.contains("is-open")) {
+      e.preventDefault();
+      const blob = imageItem.getAsFile();
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const paper = PAPERS.find(x => x.no === state.selectedNo);
+        if (!paper) return;
+        if (!paper.images) paper.images = [];
+        paper.images.push(await compressImage(ev.target.result));
+        scheduleSave("Add image");
+        renderPanelImages(paper);
+      };
+      reader.readAsDataURL(blob);
+    }
   });
 
   function renderDeepNotes(p) {
@@ -2661,6 +2709,7 @@ let PAPERS = [];
   let formStatus = "reading";
   let formImportance = 3;
   let formDeepNotes = {};
+  let formImages = [];
 
   function renderDeepNotesForm(values) {
     const host = document.getElementById("fDeepNotes");
@@ -2703,17 +2752,20 @@ let PAPERS = [];
       formStatus = p.status || "reading";
       formImportance = p.importance ?? 3;
       formDeepNotes = { ...(p.deep_notes || {}) };
+      formImages = [...(p.images || [])];
     } else {
       form.reset();
       formStatus = "reading";
       formImportance = 3;
       formDeepNotes = {};
+      formImages = [];
       const d = new Date();
       document.getElementById("fYear").value = d.getFullYear();
     }
     syncSeg("fStatusSeg", formStatus);
     syncSeg("fImportanceSeg", String(formImportance));
     renderDeepNotesForm(formDeepNotes);
+    renderFormImages();
 
     modal.classList.toggle("modal--wide", viewMode === "modal");
     modal.classList.add("is-open");
@@ -2761,6 +2813,7 @@ let PAPERS = [];
       status:     formStatus,
       importance: formImportance,
       deep_notes: { ...formDeepNotes },
+      images: [...formImages],
     };
     if (!data.title) {
       document.getElementById("fTitle").focus();
