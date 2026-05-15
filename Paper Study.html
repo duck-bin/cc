@@ -786,17 +786,19 @@
     border-radius: var(--radius-md);
     padding: 12px 14px;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.7;
     color: var(--ink-2);
     resize: vertical;
     outline: none;
     transition: border-color 0.15s ease, background 0.15s ease;
-    font-family: var(--font-sans);
+    font-family: var(--font-mono);
+    tab-size: 2;
   }
   .notes:focus {
     border-color: var(--ink-3);
     background: var(--bg-elev);
   }
+  .notes.is-expanded { min-height: 360px; }
   .notes-meta {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -1912,11 +1914,11 @@ let PAPERS = [];
         </div>
       </div>
       <div class="md-toolbar" id="notesToolbarHost"></div>
-      <textarea class="notes" id="panelNotes" placeholder="마크다운 지원 · **굵게** · *기울임* · `코드` · $수식$ · 변경사항은 자동으로 저장됩니다."></textarea>
+      <textarea class="notes" id="panelNotes" placeholder="**굵게**  *기울임*  `코드`  $수식$  - 목록&#10;Ctrl+B / Ctrl+I / Ctrl+K / Tab 들여쓰기 · 자동 저장"></textarea>
       <div class="md-preview" id="panelNotesPreview" hidden></div>
       <div class="notes-meta">
         <span id="notesSaved">—</span>
-        <span id="notesCount">0 chars</span>
+        <span id="notesCount">0 chars · 0 words</span>
       </div>
     </section>
 
@@ -2454,11 +2456,11 @@ let PAPERS = [];
     document.getElementById("panelNotesPreview").hidden = true;
     document.getElementById("notesEditTab").classList.add("is-active");
     document.getElementById("notesPreviewTab").classList.remove("is-active");
-    document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
+    updateNotesCount(notes.value);
     document.getElementById("notesSaved").textContent = "자동 저장";
     notes.oninput = () => {
       p.notes = notes.value;
-      document.getElementById("notesCount").textContent = notes.value.length + " chars";
+      updateNotesCount(notes.value);
       scheduleSave("Update notes");
     };
 
@@ -2721,8 +2723,7 @@ let PAPERS = [];
      ============================================================ */
   function renderMd(text) {
     if (!text) return "";
-    let html = window.marked ? marked.parse(text) : escapeHtml(text).replace(/\n/g, "<br>");
-    return html;
+    return window.marked ? marked.parse(text) : escapeHtml(text).replace(/\n/g, "<br>");
   }
 
   function applyMath(el) {
@@ -2742,12 +2743,15 @@ let PAPERS = [];
     applyMath(previewEl);
   }
 
+  // Live preview: re-render while in preview mode
   function setupEditorTabs(editTab, previewTab, ta, previewEl) {
+    let liveTimer = null;
     editTab.addEventListener("click", () => {
       editTab.classList.add("is-active");
       previewTab.classList.remove("is-active");
       ta.hidden = false;
       previewEl.hidden = true;
+      ta.focus();
     });
     previewTab.addEventListener("click", () => {
       previewTab.classList.add("is-active");
@@ -2755,6 +2759,12 @@ let PAPERS = [];
       ta.hidden = true;
       previewEl.hidden = false;
       showPreview(ta, previewEl);
+    });
+    // Keep preview in sync while typing (debounced 350ms)
+    ta.addEventListener("input", () => {
+      if (previewEl.hidden) return;
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => showPreview(ta, previewEl), 350);
     });
   }
 
@@ -2788,27 +2798,97 @@ let PAPERS = [];
       case "quote":      insert("> " + (sel || "인용") + "\n", 2); break;
       case "h2":         wrap("## ", "", sel || "제목"); break;
       case "hr":         insert("\n---\n", 5); break;
+      case "today": {
+        const d = new Date();
+        const ds = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+        insert(ds, ds.length); break;
+      }
     }
     ta.focus();
     ta.dispatchEvent(new Event("input"));
   }
 
+  // Keyboard smart behaviour: Tab indent, Enter list-continue, Ctrl shortcuts
+  function setupTextareaKeys(ta) {
+    ta.addEventListener("keydown", (e) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      // ── Ctrl shortcuts ──────────────────────────────────────────
+      if (ctrl && e.key === "b") { e.preventDefault(); applyMdAction(ta, "bold"); return; }
+      if (ctrl && e.key === "i") { e.preventDefault(); applyMdAction(ta, "italic"); return; }
+      if (ctrl && e.key === "k") { e.preventDefault(); applyMdAction(ta, "link"); return; }
+      if (ctrl && e.key === "`") { e.preventDefault(); applyMdAction(ta, e.shiftKey ? "codeblock" : "code"); return; }
+      if (ctrl && e.key === "m") { e.preventDefault(); applyMdAction(ta, e.shiftKey ? "mathblock" : "math"); return; }
+
+      // ── Tab / Shift+Tab ─────────────────────────────────────────
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const s = ta.selectionStart, end = ta.selectionEnd;
+        const before = ta.value.slice(0, s);
+        const after  = ta.value.slice(end);
+        if (e.shiftKey) {
+          // Dedent: remove up to 2 leading spaces from current line
+          const lineStart = before.lastIndexOf("\n") + 1;
+          const line = ta.value.slice(lineStart, end);
+          const spaces = line.match(/^ {1,2}/)?.[0] || "";
+          if (spaces) {
+            ta.value = ta.value.slice(0, lineStart) + line.slice(spaces.length) + after;
+            ta.setSelectionRange(Math.max(lineStart, s - spaces.length), Math.max(lineStart, s - spaces.length));
+          }
+        } else {
+          ta.value = before + "  " + after;
+          ta.setSelectionRange(s + 2, s + 2);
+        }
+        ta.dispatchEvent(new Event("input"));
+        return;
+      }
+
+      // ── Enter: auto-continue lists ──────────────────────────────
+      if (e.key === "Enter" && !e.shiftKey && !ctrl) {
+        const pos = ta.selectionStart;
+        const textBefore = ta.value.slice(0, pos);
+        const lines = textBefore.split("\n");
+        const cur = lines[lines.length - 1];
+        const m = cur.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
+        if (m) {
+          const [, indent, marker, content] = m;
+          if (!content.trim()) {
+            // Empty list item → exit list
+            e.preventDefault();
+            const start = pos - cur.length;
+            ta.value = ta.value.slice(0, start) + "\n" + ta.value.slice(pos);
+            ta.setSelectionRange(start + 1, start + 1);
+          } else {
+            e.preventDefault();
+            const next = /^\d/.test(marker) ? (parseInt(marker) + 1) + "." : marker;
+            const ins = "\n" + indent + next + " ";
+            ta.value = textBefore + ins + ta.value.slice(pos);
+            ta.setSelectionRange(pos + ins.length, pos + ins.length);
+          }
+          ta.dispatchEvent(new Event("input"));
+        }
+      }
+    });
+  }
+
   const MD_ACTIONS = [
-    { action: "bold",      label: "B",   title: "굵게",          style: "font-weight:700" },
-    { action: "italic",    label: "I",   title: "기울임",         style: "font-style:italic" },
-    { action: "h2",        label: "H",   title: "제목" },
+    { action: "bold",      label: "B",    title: "굵게  Ctrl+B",        style: "font-weight:700" },
+    { action: "italic",    label: "I",    title: "기울임  Ctrl+I",       style: "font-style:italic" },
+    { action: "h2",        label: "H",    title: "제목" },
     null,
-    { action: "code",      label: "</>", title: "인라인 코드" },
-    { action: "codeblock", label: "{ }", title: "코드 블록" },
+    { action: "code",      label: "</>",  title: "인라인 코드  Ctrl+`" },
+    { action: "codeblock", label: "{ }",  title: "코드 블록  Ctrl+Shift+`" },
     null,
-    { action: "math",      label: "$",   title: "수식 (인라인)" },
-    { action: "mathblock", label: "$$",  title: "수식 (블록)" },
+    { action: "math",      label: "$",    title: "수식 인라인  Ctrl+M" },
+    { action: "mathblock", label: "$$",   title: "수식 블록  Ctrl+Shift+M" },
     null,
-    { action: "ul",        label: "• —", title: "목록" },
-    { action: "ol",        label: "1.",  title: "번호 목록" },
-    { action: "quote",     label: "❝",  title: "인용" },
-    { action: "link",      label: "URL", title: "링크" },
-    { action: "hr",        label: "—",   title: "구분선" },
+    { action: "ul",        label: "• —",  title: "목록 (Enter로 계속)" },
+    { action: "ol",        label: "1.",   title: "번호 목록 (Enter로 계속)" },
+    { action: "quote",     label: "❝",   title: "인용" },
+    { action: "link",      label: "URL",  title: "링크  Ctrl+K" },
+    { action: "hr",        label: "—",    title: "구분선" },
+    null,
+    { action: "today",     label: "날짜", title: "오늘 날짜 삽입" },
   ];
 
   function buildToolbar(ta) {
@@ -3129,7 +3209,7 @@ let PAPERS = [];
   document.getElementById("notesToolbarHost").appendChild(buildToolbar(panelNotesTa));
   document.getElementById("formNotesToolbarHost").appendChild(buildToolbar(formNotesTa));
 
-  // Wire edit/preview tabs
+  // Wire edit/preview tabs + live preview
   setupEditorTabs(
     document.getElementById("notesEditTab"),
     document.getElementById("notesPreviewTab"),
@@ -3140,6 +3220,34 @@ let PAPERS = [];
     document.getElementById("formNotesPreviewTab"),
     formNotesTa, formNotesPreview
   );
+
+  // Keyboard smart behaviour
+  setupTextareaKeys(panelNotesTa);
+  setupTextareaKeys(formNotesTa);
+
+  // Word count updater
+  function updateNotesCount(text) {
+    const chars = text.length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById("notesCount").textContent = `${chars} chars · ${words} words`;
+  }
+
+  // Expand toggle for panel notes
+  const notesTabGroup = document.getElementById("notesTabGroup");
+  const expandBtn = document.createElement("button");
+  expandBtn.type = "button";
+  expandBtn.className = "editor-tab";
+  expandBtn.title = "메모 영역 확장";
+  expandBtn.textContent = "⤢";
+  let notesExpanded = false;
+  expandBtn.addEventListener("click", () => {
+    notesExpanded = !notesExpanded;
+    panelNotesTa.classList.toggle("is-expanded", notesExpanded);
+    panelNotesPreview.style.minHeight = notesExpanded ? "360px" : "";
+    expandBtn.textContent = notesExpanded ? "⤡" : "⤢";
+    expandBtn.title = notesExpanded ? "메모 영역 축소" : "메모 영역 확장";
+  });
+  notesTabGroup.appendChild(expandBtn);
 </script>
 
 </body>
