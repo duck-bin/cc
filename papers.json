@@ -58,7 +58,7 @@
     "status": "reading",
     "importance": 2,
     "deep_notes": {
-      "problem": "인간 뇌의 internal representation과 정렬한 AI vision model를 만드는 것이 목표\n신경망과 인간 신경 표현의 간극을 좁히는 것이 목표\nImageNet 분류는 DCNN 같은 모델들이 잘하더라도, Internal representation은 다름.\n\"분류를 잘한다\"와 \"인간 뇌처럼 표상한다\"는 전혀 다른 문제다.\n\nKey Question:\nCan we directly use human neural activity to align artificial neural networks (ANNs) in object recognition, thereby achieving more human brain-like vision models?",
+      "problem": "인간 뇌의 internal representation과 정렬한 AI vision model를 만드는 것이 목표\n신경망과 인간 신경 표현의 간극을 좁히는 것이 목표\nImageNet 분류는 DCNN 같은 모델들이 잘하더라도, Internal representation은 다름.\n\"분류를 잘한다\"와 \"인간 뇌처럼 표상한다\"는 전혀 다른 문제다.\n뇌랑 가까운 모델일 수록 robustness랑 일반화 능력이 뛰어남.\nKey Question:\nCan we directly use human neural activity to align artificial neural networks (ANNs) in object recognition, thereby achieving more human brain-like vision models?",
       "takeaway": "EEG와 fMRI 신경 특징에서 공유된 표상 구조와 같이, 이러한 일반화를 이끄는 특정 요인들을 추가로 탐구",
       "fail": "1. 동물 신경 데이터를 기존에 사용하였다.  \n-> nan invasive EEG data를 활용함.\n2. 단일 레이어만 정렬하였다. V1 같이 하나의 레이어만 뇌랑 정렬했다. 그래서 전체 brain vision과 정렬하지 않았다.\n단일 뇌 영역 또는 단일 모델 레이어만을 정렬한다.",
       "insight": "EEG 예측을 학습 신호로 삼으면, 모델의 표상이 인간에 가까워진다.\nEEG랑 fMRI, 행동 다 유사도가 증가했다. 이는 modality와 별개로 근본적으로 공통된 표상 구조가 있음을 의미한다.\n시각은 V1, V2, V4, IT로 이어지는 pipeline이다. 모든 layer를 eeg 생성과 연결하는 것이 align를 늘리는 방법이다.\nCORnet-S는 기존의 모델이 이미지가 레이어를 한 방향으로 쭉 통과하면 끝이긴 것과 별개로 인간 뇌의 시각 피질 신호와 같이 앞으로만 가는 게 아니라, 같은 영역을 여러 번 반복해서 처리한다.",
