@@ -54,7 +54,7 @@
     "year": 2026,
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
-    "notes": "Multilayer encoding 기반 프레임 워크\nNon invasive EEG 사용",
+    "notes": "Multilayer encoding 기반 프레임 워크\nNon invasive EEG를 기반으로 한 시각 모델",
     "status": "reading",
     "importance": 2,
     "deep_notes": {
