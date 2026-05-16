@@ -1,5 +1,20 @@
 [
   {
+    "no": 3,
+    "title": "Token Practice Test",
+    "summary": "",
+    "authors": [],
+    "tags": [],
+    "venue": "",
+    "year": 2026,
+    "date_read": "2026.05.01",
+    "url": "",
+    "notes": "다시 볼 때 다시 이해할 수 있는 논문 정리를 해줘. \n\nproblem definition why exisiting methods fail core insight method overview key results limitations takeaway에 맞춰서 각각 작성해줘\n\n",
+    "status": "read",
+    "progress": 3,
+    "deep_notes": {}
+  },
+  {
     "no": 6,
     "title": "Achieving more human brain-like vision via human EEG representational alignment",
     "summary": "",
@@ -32,21 +47,6 @@
       "limits": "이미지 입력\n     ↓\nCORnet-S 본체 (학생 모델, 가중치 업데이트됨)\n     ├─────────────────────────────────┐\n     ↓                                 ↓\n분류 출력 (1,000 클래스)          레이어별 출력 추출\n     ↓                          V1 / V2 / V4 / IT\n교사 CORnet-S와 비교               ↓   ↓   ↓   ↓\n     ↓                          각각 N×128으로 압축 (ReLU)\n분류 손실 LC                        ↓\n(pseudo-label 기반)            Concatenate → N×512\n                                    ↓\n                               선형 변환 → N×340\n                                    ↓\n                               예측 EEG (17ch × 20tp)\n                                    ↓\n                               실제 EEG와 비교\n                                    ↓\n                          생성 손실 LG = LMSE + LCont\n\n최종 손실: LA = LC + 100 × LG"
     },
     "images": []
-  },
-  {
-    "no": 3,
-    "title": "Token Practice Test",
-    "summary": "",
-    "authors": [],
-    "tags": [],
-    "venue": "",
-    "year": 2026,
-    "date_read": "2026.05.01",
-    "url": "",
-    "notes": "다시 볼 때 다시 이해할 수 있는 논문 정리를 해줘. \n\nproblem definition why exisiting methods fail core insight method overview key results limitations takeaway에 맞춰서 각각 작성해줘\n\n",
-    "status": "read",
-    "progress": 3,
-    "deep_notes": {}
   },
   {
     "no": 4,
