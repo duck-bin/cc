@@ -60,7 +60,7 @@
     "deep_notes": {
       "problem": "인간 뇌의 internal representation과 정렬한 AI vision model를 만드는 것이 목표\nImageNet 분류는 DCNN 같은 모델들이 잘하더라도, Internal representation은 다름.\nKey Question:\nCan we directly use human neural activity to align artificial neural networks (ANNs) in object recognition, thereby achieving more human brain-like vision models?",
       "takeaway": "",
-      "fail": "1. 동물 신경 데이터를 기존에 사용하였다.  \n2. 단일 레이어만 정렬하였다. V1 같이 하나의 레이어만 뇌랑 정렬했다. 그래서 전체 brain vision과 정렬하지 않았다."
+      "fail": "1. 동물 신경 데이터를 기존에 사용하였다.  \n-> \n2. 단일 레이어만 정렬하였다. V1 같이 하나의 레이어만 뇌랑 정렬했다. 그래서 전체 brain vision과 정렬하지 않았다."
     },
     "images": []
   },
