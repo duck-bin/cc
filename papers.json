@@ -19,7 +19,7 @@
     "year": 2026,
     "date_read": "2026.05.16",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
-    "notes": "**비침습적 인간 EEG 데이터로 AI 시각 모델의 여러 레이어를 동시에 정렬해서, 더 인간 뇌에 가까운 내부 표상을 만들 수 있는가?\n**Multilayer encoding 기반 프레임 워크\nNon invasive EEG를 기반으로 한 시각 모델",
+    "notes": "**비침습적 인간 EEG 데이터로 AI 시각 모델의 여러 레이어를 동시에 정렬해서, 더 인간 뇌에 가까운 내부 표상을 만들 수 있는가?\nMultilayer encoding 기반 프레임 워크\nNon invasive EEG를 기반으로 한 시각 모델",
     "status": "read",
     "importance": 2,
     "deep_notes": {
