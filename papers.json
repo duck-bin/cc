@@ -65,7 +65,7 @@
     "date_read": "2026.05.16",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
     "notes": "비침습적 인간 EEG 데이터로 AI 시각 모델의 여러 레이어를 동시에 정렬해서, 더 인간 뇌에 가까운 내부 표상을 만들 수 있는가?\nMultilayer encoding 기반 프레임 워크\nNon invasive EEG를 기반으로 한 시각 모델",
-    "status": "reading",
+    "status": "read",
     "importance": 2,
     "deep_notes": {
       "problem": "인간 뇌의 internal representation과 정렬한 AI vision model를 만드는 것이 목표\n신경망과 인간 신경 표현의 간극을 좁히는 것이 목표\nImageNet 분류는 DCNN 같은 모델들이 잘하더라도, Internal representation은 다름.\n\"분류를 잘한다\"와 \"인간 뇌처럼 표상한다\"는 전혀 다른 문제다.\n뇌랑 가까운 모델일 수록 robustness랑 일반화 능력이 뛰어남. + 시각 메커니즘을 이해할 수 있음.\nKey Question:\nCan we directly use human neural activity to align artificial neural networks (ANNs) in object recognition, thereby achieving more human brain-like vision models?",
