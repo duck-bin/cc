@@ -48,9 +48,19 @@
     "no": 6,
     "title": "Achieving more human brain-like vision via human EEG representational alignment",
     "summary": "",
-    "authors": [],
-    "tags": [],
-    "venue": "",
+    "authors": [
+      "Lu",
+      "Z.",
+      "Wang",
+      "Y. & Golomb",
+      "J.D."
+    ],
+    "tags": [
+      "computational neuroscience",
+      "representational alignment",
+      "brain-inspired ai"
+    ],
+    "venue": "Nature.Commun Biol",
     "year": 2026,
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s42003-026-09685-w",
