@@ -34,6 +34,21 @@
     "images": []
   },
   {
+    "no": 8,
+    "title": "EndoNet: A Deep Architecture for Recognition Tasks on Laparoscopic Videos",
+    "summary": "",
+    "authors": [],
+    "tags": [],
+    "venue": "",
+    "year": 2026,
+    "date_read": "2026.05.11",
+    "url": "https://arxiv.org/abs/1602.03012",
+    "notes": "",
+    "status": "hold",
+    "importance": 3,
+    "deep_notes": {}
+  },
+  {
     "no": 3,
     "title": "Token Practice Test",
     "summary": "",
@@ -88,21 +103,6 @@
     "year": 2026,
     "date_read": "2026.05.11",
     "url": "https://www.nature.com/articles/s41746-025-02227-4",
-    "notes": "",
-    "status": "hold",
-    "importance": 3,
-    "deep_notes": {}
-  },
-  {
-    "no": 8,
-    "title": "EndoNet: A Deep Architecture for Recognition Tasks on Laparoscopic Videos",
-    "summary": "",
-    "authors": [],
-    "tags": [],
-    "venue": "",
-    "year": 2026,
-    "date_read": "2026.05.11",
-    "url": "https://arxiv.org/abs/1602.03012",
     "notes": "",
     "status": "hold",
     "importance": 3,
