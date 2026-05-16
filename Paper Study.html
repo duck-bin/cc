@@ -1170,23 +1170,23 @@
     overflow: hidden;
     transition: max-height 0.22s ease;
   }
-  .dnote.is-open .dnote__body { max-height: 600px; }
+  .dnote.is-open .dnote__body { max-height: 700px; }
   .dnote__body textarea {
     width: 100%;
     border: none;
     border-top: 1px solid var(--line);
     background: var(--bg-sunken);
-    padding: 12px 14px;
-    font-family: var(--font-sans);
+    padding: 16px 18px;
+    font-family: var(--font-mono);
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.75;
     color: var(--ink-2);
     outline: none;
     resize: vertical;
-    min-height: 90px;
+    min-height: 120px;
     box-sizing: border-box;
   }
-  .dnote__body textarea:focus { background: var(--bg-elev); }
+  .dnote__body textarea:focus { background: var(--bg-elev); border-top-color: var(--ink-4); }
 
   /* Modal: deep notes block */
   .deep-notes-form {
