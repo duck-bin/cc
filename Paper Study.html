@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Paper Study — Reading Log</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <style>
   /* ============================================================
      DESIGN TOKENS
@@ -626,6 +630,89 @@
     color: var(--ink-3);
     margin: 0 0 10px;
   }
+  .field__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .field__label-row .field__label { margin: 0; }
+
+  /* Editor tabs (Edit / Preview) */
+  .editor-tabs {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .editor-tab {
+    background: none;
+    border: none;
+    padding: 3px 9px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+    color: var(--ink-4);
+    cursor: pointer;
+    transition: all 0.1s ease;
+  }
+  .editor-tab.is-active { background: var(--accent); color: var(--bg); }
+
+  /* Markdown toolbar */
+  .md-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .md-tb-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.1s ease;
+    min-width: 26px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .md-tb-btn:hover { background: var(--bg-hover); color: var(--ink); border-color: var(--ink-3); }
+  .md-toolbar__sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
+
+  /* Markdown preview */
+  .md-preview {
+    min-height: 90px;
+    padding: 10px 12px;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--ink-2);
+    overflow-y: auto;
+    word-break: break-word;
+  }
+  .md-preview:empty::before { content: "미리보기 없음"; color: var(--ink-4); font-style: italic; }
+  .md-preview h1,.md-preview h2,.md-preview h3 { color: var(--ink); font-weight: 600; margin: 0.9em 0 0.3em; }
+  .md-preview h1 { font-size: 16px; } .md-preview h2 { font-size: 14px; } .md-preview h3 { font-size: 13px; }
+  .md-preview p { margin: 0 0 0.5em; }
+  .md-preview ul,.md-preview ol { margin: 0 0 0.5em; padding-left: 1.4em; }
+  .md-preview li { margin-bottom: 0.2em; }
+  .md-preview code { font-family: var(--font-mono); font-size: 11px; background: var(--bg-hover); padding: 1px 5px; border-radius: 2px; }
+  .md-preview pre { background: var(--bg-hover); padding: 10px 12px; border-radius: 3px; overflow-x: auto; margin: 0.5em 0; }
+  .md-preview pre code { background: none; padding: 0; font-size: 12px; }
+  .md-preview blockquote { border-left: 3px solid var(--accent); margin: 0.5em 0; padding: 2px 12px; color: var(--ink-3); }
+  .md-preview a { color: var(--accent-ink); }
+  .md-preview strong { color: var(--ink); font-weight: 600; }
+  .md-preview em { color: var(--ink-2); }
+  .md-preview hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
+  .md-preview table { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: 12px; }
+  .md-preview th,.md-preview td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+  .md-preview th { background: var(--bg-hover); font-weight: 600; }
   .field__value {
     color: var(--ink-2);
     font-size: 13px;
@@ -699,17 +786,19 @@
     border-radius: var(--radius-md);
     padding: 12px 14px;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.7;
     color: var(--ink-2);
     resize: vertical;
     outline: none;
     transition: border-color 0.15s ease, background 0.15s ease;
-    font-family: var(--font-sans);
+    font-family: var(--font-mono);
+    tab-size: 2;
   }
   .notes:focus {
     border-color: var(--ink-3);
     background: var(--bg-elev);
   }
+  .notes.is-expanded { min-height: 360px; }
   .notes-meta {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -1081,23 +1170,23 @@
     overflow: hidden;
     transition: max-height 0.22s ease;
   }
-  .dnote.is-open .dnote__body { max-height: 600px; }
+  .dnote.is-open .dnote__body { max-height: 700px; }
   .dnote__body textarea {
     width: 100%;
     border: none;
     border-top: 1px solid var(--line);
     background: var(--bg-sunken);
-    padding: 12px 14px;
-    font-family: var(--font-sans);
+    padding: 16px 18px;
+    font-family: var(--font-mono);
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.75;
     color: var(--ink-2);
     outline: none;
     resize: vertical;
-    min-height: 90px;
+    min-height: 120px;
     box-sizing: border-box;
   }
-  .dnote__body textarea:focus { background: var(--bg-elev); }
+  .dnote__body textarea:focus { background: var(--bg-elev); border-top-color: var(--ink-4); }
 
   /* Modal: deep notes block */
   .deep-notes-form {
@@ -1746,8 +1835,16 @@ let PAPERS = [];
       <input type="url" id="fUrl" placeholder="https://arxiv.org/abs/..." />
     </div>
     <div class="form-field col-span-2">
-      <label for="fNotes">Notes</label>
-      <textarea id="fNotes" placeholder="자유 메모 · 이미지는 Ctrl+V로 붙여넣기"></textarea>
+      <div class="field__label-row" style="margin-bottom:5px;">
+        <label for="fNotes">Notes</label>
+        <div class="editor-tabs">
+          <button type="button" class="editor-tab is-active" id="formNotesEditTab">Edit</button>
+          <button type="button" class="editor-tab" id="formNotesPreviewTab">Preview</button>
+        </div>
+      </div>
+      <div class="md-toolbar" id="formNotesToolbarHost"></div>
+      <textarea id="fNotes" placeholder="마크다운 지원 · **굵게** · $수식$ · Ctrl+V 이미지"></textarea>
+      <div class="md-preview" id="formNotesPreview" hidden></div>
       <div class="img-gallery" id="formImgGallery" style="margin-top:8px;"></div>
     </div>
     <div class="deep-notes-form">
@@ -1809,11 +1906,19 @@ let PAPERS = [];
     </section>
 
     <section class="field">
-      <p class="field__label">Notes</p>
-      <textarea class="notes" id="panelNotes" placeholder="이 논문에 대한 메모를 자유롭게 적어두세요. 변경사항은 자동으로 저장됩니다."></textarea>
+      <div class="field__label-row">
+        <p class="field__label">Notes</p>
+        <div class="editor-tabs">
+          <button type="button" class="editor-tab is-active" id="notesEditTab">Edit</button>
+          <button type="button" class="editor-tab" id="notesPreviewTab">Preview</button>
+        </div>
+      </div>
+      <div class="md-toolbar" id="notesToolbarHost"></div>
+      <textarea class="notes" id="panelNotes" placeholder="**굵게**  *기울임*  `코드`  $수식$  - 목록&#10;Ctrl+B / Ctrl+I / Ctrl+K / Tab 들여쓰기 · 자동 저장"></textarea>
+      <div class="md-preview" id="panelNotesPreview" hidden></div>
       <div class="notes-meta">
         <span id="notesSaved">—</span>
-        <span id="notesCount">0 chars</span>
+        <span id="notesCount">0 chars · 0 words</span>
       </div>
     </section>
 
@@ -2344,14 +2449,18 @@ let PAPERS = [];
     });
     document.getElementById("panelImportanceLabel").textContent = `${imp} / 5`;
 
-    // notes
+    // notes — reset to edit tab
     const notes = document.getElementById("panelNotes");
     notes.value = p.notes || "";
-    document.getElementById("notesCount").textContent = (notes.value.length) + " chars";
+    notes.hidden = false;
+    document.getElementById("panelNotesPreview").hidden = true;
+    document.getElementById("notesEditTab").classList.add("is-active");
+    document.getElementById("notesPreviewTab").classList.remove("is-active");
+    updateNotesCount(notes.value);
     document.getElementById("notesSaved").textContent = "자동 저장";
     notes.oninput = () => {
       p.notes = notes.value;
-      document.getElementById("notesCount").textContent = notes.value.length + " chars";
+      updateNotesCount(notes.value);
       scheduleSave("Update notes");
     };
 
@@ -2609,6 +2718,201 @@ let PAPERS = [];
   /* ============================================================
      UTIL
      ============================================================ */
+  /* ============================================================
+     MARKDOWN / LATEX
+     ============================================================ */
+  function renderMd(text) {
+    if (!text) return "";
+    return window.marked ? marked.parse(text) : escapeHtml(text).replace(/\n/g, "<br>");
+  }
+
+  function applyMath(el) {
+    if (window.renderMathInElement) {
+      renderMathInElement(el, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$",  right: "$",  display: false },
+        ],
+        throwOnError: false,
+      });
+    }
+  }
+
+  function showPreview(ta, previewEl) {
+    previewEl.innerHTML = renderMd(ta.value);
+    applyMath(previewEl);
+  }
+
+  // Live preview: re-render while in preview mode
+  function setupEditorTabs(editTab, previewTab, ta, previewEl) {
+    let liveTimer = null;
+    editTab.addEventListener("click", () => {
+      editTab.classList.add("is-active");
+      previewTab.classList.remove("is-active");
+      ta.hidden = false;
+      previewEl.hidden = true;
+      ta.focus();
+    });
+    previewTab.addEventListener("click", () => {
+      previewTab.classList.add("is-active");
+      editTab.classList.remove("is-active");
+      ta.hidden = true;
+      previewEl.hidden = false;
+      showPreview(ta, previewEl);
+    });
+    // Keep preview in sync while typing (debounced 350ms)
+    ta.addEventListener("input", () => {
+      if (previewEl.hidden) return;
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => showPreview(ta, previewEl), 350);
+    });
+  }
+
+  function applyMdAction(ta, action) {
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.slice(s, e);
+    const before = ta.value.slice(0, s);
+    const after  = ta.value.slice(e);
+
+    function wrap(l, r, def) {
+      const txt = sel || def;
+      ta.value = before + l + txt + r + after;
+      const cs = s + l.length, ce = cs + txt.length;
+      ta.setSelectionRange(sel ? ce : cs, sel ? ce : ce);
+    }
+    function insert(txt, cur) {
+      ta.value = before + txt + after;
+      ta.setSelectionRange(s + cur, s + cur);
+    }
+
+    switch (action) {
+      case "bold":       wrap("**", "**", "굵은 텍스트"); break;
+      case "italic":     wrap("*",  "*",  "기울임"); break;
+      case "code":       wrap("`",  "`",  "코드"); break;
+      case "codeblock":  insert("```\n" + (sel || "코드") + "\n```", 4); break;
+      case "math":       wrap("$",  "$",  "수식"); break;
+      case "mathblock":  insert("$$\n" + (sel || "수식") + "\n$$", 3); break;
+      case "link":       wrap("[", "](url)", sel || "링크"); break;
+      case "ul":         insert("- " + (sel || "항목") + "\n", 2); break;
+      case "ol":         insert("1. " + (sel || "항목") + "\n", 3); break;
+      case "quote":      insert("> " + (sel || "인용") + "\n", 2); break;
+      case "h2":         wrap("## ", "", sel || "제목"); break;
+      case "hr":         insert("\n---\n", 5); break;
+      case "today": {
+        const d = new Date();
+        const ds = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+        insert(ds, ds.length); break;
+      }
+    }
+    ta.focus();
+    ta.dispatchEvent(new Event("input"));
+  }
+
+  // Keyboard smart behaviour: Tab indent, Enter list-continue, Ctrl shortcuts
+  function setupTextareaKeys(ta) {
+    ta.addEventListener("keydown", (e) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      // ── Ctrl shortcuts ──────────────────────────────────────────
+      if (ctrl && e.key === "b") { e.preventDefault(); applyMdAction(ta, "bold"); return; }
+      if (ctrl && e.key === "i") { e.preventDefault(); applyMdAction(ta, "italic"); return; }
+      if (ctrl && e.key === "k") { e.preventDefault(); applyMdAction(ta, "link"); return; }
+      if (ctrl && e.key === "`") { e.preventDefault(); applyMdAction(ta, e.shiftKey ? "codeblock" : "code"); return; }
+      if (ctrl && e.key === "m") { e.preventDefault(); applyMdAction(ta, e.shiftKey ? "mathblock" : "math"); return; }
+
+      // ── Tab / Shift+Tab ─────────────────────────────────────────
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const s = ta.selectionStart, end = ta.selectionEnd;
+        const before = ta.value.slice(0, s);
+        const after  = ta.value.slice(end);
+        if (e.shiftKey) {
+          // Dedent: remove up to 2 leading spaces from current line
+          const lineStart = before.lastIndexOf("\n") + 1;
+          const line = ta.value.slice(lineStart, end);
+          const spaces = line.match(/^ {1,2}/)?.[0] || "";
+          if (spaces) {
+            ta.value = ta.value.slice(0, lineStart) + line.slice(spaces.length) + after;
+            ta.setSelectionRange(Math.max(lineStart, s - spaces.length), Math.max(lineStart, s - spaces.length));
+          }
+        } else {
+          ta.value = before + "  " + after;
+          ta.setSelectionRange(s + 2, s + 2);
+        }
+        ta.dispatchEvent(new Event("input"));
+        return;
+      }
+
+      // ── Enter: auto-continue lists ──────────────────────────────
+      if (e.key === "Enter" && !e.shiftKey && !ctrl) {
+        const pos = ta.selectionStart;
+        const textBefore = ta.value.slice(0, pos);
+        const lines = textBefore.split("\n");
+        const cur = lines[lines.length - 1];
+        const m = cur.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
+        if (m) {
+          const [, indent, marker, content] = m;
+          if (!content.trim()) {
+            // Empty list item → exit list
+            e.preventDefault();
+            const start = pos - cur.length;
+            ta.value = ta.value.slice(0, start) + "\n" + ta.value.slice(pos);
+            ta.setSelectionRange(start + 1, start + 1);
+          } else {
+            e.preventDefault();
+            const next = /^\d/.test(marker) ? (parseInt(marker) + 1) + "." : marker;
+            const ins = "\n" + indent + next + " ";
+            ta.value = textBefore + ins + ta.value.slice(pos);
+            ta.setSelectionRange(pos + ins.length, pos + ins.length);
+          }
+          ta.dispatchEvent(new Event("input"));
+        }
+      }
+    });
+  }
+
+  const MD_ACTIONS = [
+    { action: "bold",      label: "B",    title: "굵게  Ctrl+B",        style: "font-weight:700" },
+    { action: "italic",    label: "I",    title: "기울임  Ctrl+I",       style: "font-style:italic" },
+    { action: "h2",        label: "H",    title: "제목" },
+    null,
+    { action: "code",      label: "</>",  title: "인라인 코드  Ctrl+`" },
+    { action: "codeblock", label: "{ }",  title: "코드 블록  Ctrl+Shift+`" },
+    null,
+    { action: "math",      label: "$",    title: "수식 인라인  Ctrl+M" },
+    { action: "mathblock", label: "$$",   title: "수식 블록  Ctrl+Shift+M" },
+    null,
+    { action: "ul",        label: "• —",  title: "목록 (Enter로 계속)" },
+    { action: "ol",        label: "1.",   title: "번호 목록 (Enter로 계속)" },
+    { action: "quote",     label: "❝",   title: "인용" },
+    { action: "link",      label: "URL",  title: "링크  Ctrl+K" },
+    { action: "hr",        label: "—",    title: "구분선" },
+    null,
+    { action: "today",     label: "날짜", title: "오늘 날짜 삽입" },
+  ];
+
+  function buildToolbar(ta) {
+    const bar = document.createElement("div");
+    bar.className = "md-toolbar";
+    MD_ACTIONS.forEach(item => {
+      if (!item) {
+        const sep = document.createElement("span");
+        sep.className = "md-toolbar__sep";
+        bar.appendChild(sep);
+        return;
+      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "md-tb-btn";
+      btn.textContent = item.label;
+      btn.title = item.title;
+      if (item.style) btn.style.cssText = item.style;
+      btn.addEventListener("click", () => applyMdAction(ta, item.action));
+      bar.appendChild(btn);
+    });
+    return bar;
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({
       "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
@@ -2766,6 +3070,11 @@ let PAPERS = [];
     syncSeg("fImportanceSeg", String(formImportance));
     renderDeepNotesForm(formDeepNotes);
     renderFormImages();
+    // Reset form notes to edit tab
+    document.getElementById("fNotes").hidden = false;
+    document.getElementById("formNotesPreview").hidden = true;
+    document.getElementById("formNotesEditTab").classList.add("is-active");
+    document.getElementById("formNotesPreviewTab").classList.remove("is-active");
 
     modal.classList.toggle("modal--wide", viewMode === "modal");
     modal.classList.add("is-open");
@@ -2887,6 +3196,58 @@ let PAPERS = [];
   });
 
   applyViewMode();
+
+  /* ============================================================
+     EDITOR INIT — panel notes + form notes
+     ============================================================ */
+  const panelNotesTa      = document.getElementById("panelNotes");
+  const panelNotesPreview = document.getElementById("panelNotesPreview");
+  const formNotesTa       = document.getElementById("fNotes");
+  const formNotesPreview  = document.getElementById("formNotesPreview");
+
+  // Build toolbars
+  document.getElementById("notesToolbarHost").appendChild(buildToolbar(panelNotesTa));
+  document.getElementById("formNotesToolbarHost").appendChild(buildToolbar(formNotesTa));
+
+  // Wire edit/preview tabs + live preview
+  setupEditorTabs(
+    document.getElementById("notesEditTab"),
+    document.getElementById("notesPreviewTab"),
+    panelNotesTa, panelNotesPreview
+  );
+  setupEditorTabs(
+    document.getElementById("formNotesEditTab"),
+    document.getElementById("formNotesPreviewTab"),
+    formNotesTa, formNotesPreview
+  );
+
+  // Keyboard smart behaviour
+  setupTextareaKeys(panelNotesTa);
+  setupTextareaKeys(formNotesTa);
+
+  // Word count updater
+  function updateNotesCount(text) {
+    const chars = text.length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById("notesCount").textContent = `${chars} chars · ${words} words`;
+  }
+
+  // Expand toggle for panel notes
+  const notesTabGroup = document.getElementById("notesTabGroup");
+  const expandBtn = document.createElement("button");
+  expandBtn.type = "button";
+  expandBtn.className = "editor-tab";
+  expandBtn.title = "메모 영역 확장";
+  expandBtn.textContent = "⤢";
+  let notesExpanded = false;
+  expandBtn.addEventListener("click", () => {
+    notesExpanded = !notesExpanded;
+    panelNotesTa.classList.toggle("is-expanded", notesExpanded);
+    panelNotesPreview.style.minHeight = notesExpanded ? "360px" : "";
+    expandBtn.textContent = notesExpanded ? "⤡" : "⤢";
+    expandBtn.title = notesExpanded ? "메모 영역 축소" : "메모 영역 확장";
+  });
+  notesTabGroup.appendChild(expandBtn);
 </script>
 
 </body>
