@@ -61,7 +61,7 @@
       "problem": "인간 뇌의 internal representation과 정렬한 AI vision model를 만드는 것이 목표\nImageNet 분류는 DCNN 같은 모델들이 잘하더라도, Internal representation은 다름.\nKey Question:\nCan we directly use human neural activity to align artificial neural networks (ANNs) in object recognition, thereby achieving more human brain-like vision models?",
       "takeaway": "",
       "fail": "1. 동물 신경 데이터를 기존에 사용하였다.  \n-> nan invasive EEG data를 활용함.\n2. 단일 레이어만 정렬하였다. V1 같이 하나의 레이어만 뇌랑 정렬했다. 그래서 전체 brain vision과 정렬하지 않았다.",
-      "insight": "EEG 예측을 학습 신호로 삼으면, 모델의 표상이 인간에 가까워진다.\nEEG랑 fMRI, 행동 다 유사도가 증가했다. 이는 modality와 별개로 근본적으로 공통된 표상 구조가 있음을 의미한다.\n시각은 V1, V2, V4, IT로 이어지는 pipeline이다.",
+      "insight": "EEG 예측을 학습 신호로 삼으면, 모델의 표상이 인간에 가까워진다.\nEEG랑 fMRI, 행동 다 유사도가 증가했다. 이는 modality와 별개로 근본적으로 공통된 표상 구조가 있음을 의미한다.\n시각은 V1, V2, V4, IT로 이어지는 pipeline이다. ",
       "method": "CORnet-S를 기반으로 ReAInet를 만듦.\n\n\n손실함수\nLc\nLMSE\nLCont\n\n평가\nRSA",
       "results": "1. EEG 유사도 향상\n2. fMRI 유사도 향상\nV1 ~ LOC 전 ROI ek gidtkd\n3. 개인 변이성 패턴\n4. 행동 유사도 "
     },
