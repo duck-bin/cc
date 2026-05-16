@@ -58,7 +58,7 @@
     "status": "reading",
     "importance": 2,
     "deep_notes": {
-      "problem": "인간 뇌의 internal represntation과 정렬한 AI vision model를 만드는 것이 목표\nImageNet 부",
+      "problem": "인간 뇌의 internal represntation과 정렬한 AI vision model를 만드는 것이 목표\nImageNet 분류는 ",
       "takeaway": "",
       "fail": ""
     },
