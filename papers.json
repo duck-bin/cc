@@ -62,7 +62,7 @@
       "takeaway": "",
       "fail": "1. 동물 신경 데이터를 기존에 사용하였다.  \n-> nan invasive EEG data를 활용함.\n2. 단일 레이어만 정렬하였다. V1 같이 하나의 레이어만 뇌랑 정렬했다. 그래서 전체 brain vision과 정렬하지 않았다.",
       "insight": "M",
-      "method": "CORnet-S를 기반으로 ReAInet를 만듦."
+      "method": "CORnet-S를 기반으로 ReAInet를 만듦.\n\n\n"
     },
     "images": []
   },
