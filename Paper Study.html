@@ -1182,7 +1182,8 @@
     line-height: 1.75;
     color: var(--ink-2);
     outline: none;
-    resize: vertical;
+    resize: none;
+    overflow: hidden;
     min-height: 120px;
     box-sizing: border-box;
   }
@@ -2633,15 +2634,30 @@ let PAPERS = [];
         </div>
       `;
       const head = wrap.querySelector(".dnote__head");
-      const ta = wrap.querySelector("textarea");
+      const body = wrap.querySelector(".dnote__body");
+      const ta   = wrap.querySelector("textarea");
       ta.value = val;
+
+      function fitBody() {
+        ta.style.height = "auto";
+        ta.style.height = Math.max(120, ta.scrollHeight) + "px";
+        body.style.maxHeight = (ta.offsetHeight + 1) + "px"; // +1 for border-top
+      }
+
       head.addEventListener("click", () => {
+        const opening = !wrap.classList.contains("is-open");
         wrap.classList.toggle("is-open");
-        if (wrap.classList.contains("is-open")) setTimeout(() => ta.focus(), 100);
+        if (opening) {
+          fitBody();
+          setTimeout(() => ta.focus(), 100);
+        } else {
+          body.style.maxHeight = "";
+        }
       });
       ta.addEventListener("input", () => {
         p.deep_notes[f.key] = ta.value;
         wrap.classList.toggle("is-filled", ta.value.trim().length > 0);
+        fitBody();
         scheduleSave("Update deep notes");
       });
       host.appendChild(wrap);
